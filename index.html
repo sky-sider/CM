@@ -27,7 +27,26 @@
     <p class="eyebrow">SOLO CHALLENGE / 001</p>
     <h2>秘密のコードを解読せよ。</h2>
     <p>3桁のコードを提案し、検証器の回答から正解を推理してください。</p>
-    <div class="rules"><span>数字：1〜5</span><span>検証器：4基</span><span>条件カード：公式版48種類</span><span>各ラウンド最大3回</span><span>モード：一人用</span></div>
+    <div class="rules"><span>数字：1〜5</span><span id="verifierCountRule">判定機：4基</span><span>条件カード：48種類</span><span>各ラウンド最大3回</span><span>モード：一人用</span></div>
+    <div class="settings-picker">
+      <div class="difficulty-picker">
+        <label for="difficulty">出題難易度</label>
+        <select id="difficulty" aria-label="出題難易度">
+          <option value="beginner">入門（カード1〜17）</option>
+          <option value="standard">標準（カード1〜22）</option>
+          <option value="advanced">上級（カード1〜48）</option>
+        </select>
+      </div>
+      <div class="difficulty-picker">
+        <label for="verifierCount">判定機の数</label>
+        <select id="verifierCount" aria-label="判定機の数">
+          <option value="4" selected>4基（A〜D）</option>
+          <option value="5">5基（A〜E）</option>
+          <option value="6">6基（A〜F）</option>
+        </select>
+      </div>
+      <p class="muted small settings-help">難易度と判定機の数を選んでから「新しい問題を開始」を押してください。</p>
+    </div>
     <div class="round-status" aria-live="polite">
       <strong id="roundStatus">ROUND 1</strong>
       <span id="questionStatus">このラウンドの質問：0 / 3</span>
@@ -50,12 +69,7 @@
   <section class="panel">
     <div class="section-heading"><span class="section-number">02</span><h2>VERIFIER ARRAY</h2></div>
     <p class="muted">条件候補を確認し、現在の提案コードを検証器にテストします。1ラウンド中、同じ検証器への質問は1回までです。</p>
-    <div class="verifier-grid">
-      <article class="verifier"><div class="verifier-top"><span>UNIT A</span><span>▲</span></div><div class="orb">A</div><p>検証器 A</p><div class="criteria-panel"><p class="criteria-heading">POSSIBLE CRITERIA / A</p><div id="criteriaOptions0" class="criteria-list"><div class="criteria-option">条件候補を準備しています…</div></div><p class="criteria-note">実際に使われている条件は、この候補のうち1つです。</p></div><button class="test-button" data-verifier="0">テスト実行</button><div class="result" id="result0">未検証</div></article>
-      <article class="verifier"><div class="verifier-top"><span>UNIT B</span><span>■</span></div><div class="orb">B</div><p>検証器 B</p><div class="criteria-panel"><p class="criteria-heading">POSSIBLE CRITERIA / B</p><div id="criteriaOptions1" class="criteria-list"><div class="criteria-option">条件候補を準備しています…</div></div><p class="criteria-note">実際に使われている条件は、この候補のうち1つです。</p></div><button class="test-button" data-verifier="1">テスト実行</button><div class="result" id="result1">未検証</div></article>
-      <article class="verifier"><div class="verifier-top"><span>UNIT C</span><span>●</span></div><div class="orb">C</div><p>検証器 C</p><div class="criteria-panel"><p class="criteria-heading">POSSIBLE CRITERIA / C</p><div id="criteriaOptions2" class="criteria-list"><div class="criteria-option">条件候補を準備しています…</div></div><p class="criteria-note">実際に使われている条件は、この候補のうち1つです。</p></div><button class="test-button" data-verifier="2">テスト実行</button><div class="result" id="result2">未検証</div></article>
-      <article class="verifier"><div class="verifier-top"><span>UNIT D</span><span>◆</span></div><div class="orb">D</div><p>検証器 D</p><div class="criteria-panel"><p class="criteria-heading">POSSIBLE CRITERIA / D</p><div id="criteriaOptions3" class="criteria-list"><div class="criteria-option">条件候補を準備しています…</div></div><p class="criteria-note">実際に使われている条件は、この候補のうち1つです。</p></div><button class="test-button" data-verifier="3">テスト実行</button><div class="result" id="result3">未検証</div></article>
-    </div>
+    <div id="verifierGrid" class="verifier-grid" aria-live="polite"></div>
     <button id="nextRound" class="secondary-button" disabled>このラウンドを終了して次へ</button>
     <p class="muted small">質問は1ラウンド最大3回です。3回未満でラウンドを終えてもかまいません。過去の検証履歴は次のラウンドにも引き継がれます。</p>
   </section>
