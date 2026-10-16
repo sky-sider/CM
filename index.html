@@ -14,6 +14,29 @@
     .criteria-option{display:flex;align-items:flex-start;gap:8px;padding:9px;border-radius:5px;background:rgba(141,231,244,.06);color:#d7e5ed;font-size:.85rem;line-height:1.5;overflow-wrap:anywhere}
     .criteria-number{flex:0 0 auto;color:#8de7f4;font-weight:bold}
     .criteria-note{margin:9px 0 0;color:#8fa8b8;font-size:.72rem;line-height:1.5}
+.final-answer-panel {
+  margin-top: 28px;
+  padding: 18px;
+  border: 1px solid rgba(105, 211, 232, .4);
+  border-radius: 10px;
+  background: rgba(105, 211, 232, .06);
+}
+
+.final-answer-panel h3 {
+  margin-top: 0;
+  color: #8de7f4;
+  font-size: 1rem;
+  letter-spacing: .08em;
+}
+
+.final-answer-panel .primary-button {
+  width: 100%;
+  margin-top: 18px;
+}
+
+.final-answer-panel .code-slots {
+  margin-top: 16px;
+}
   </style>
 </head>
 <body>
@@ -56,14 +79,46 @@
 
   <section class="panel">
     <div class="section-heading"><span class="section-number">01</span><h2>CODE INPUT</h2></div>
-    <p class="muted">各スロットの数字を選択してください。最初の検証後、ラウンド終了までコードは固定されます。</p>
+    <p class="muted">検証機に提出する提案コードを選択してください。最初の検証後、ラウンド終了まで固定されます。正解だと思う数字は、下の最終回答欄に入力してください。</p>
     <div class="code-slots">
       <label class="slot slot-a"><span>▲ TRIANGLE</span><select id="digitA" aria-label="三角の数字"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
       <label class="slot slot-b"><span>■ SQUARE</span><select id="digitB" aria-label="四角の数字"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
       <label class="slot slot-c"><span>● CIRCLE</span><select id="digitC" aria-label="丸の数字"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
     </div>
-    <button id="submitGuess" class="primary-button">CODEを最終回答する</button>
-    <p class="muted small">※ 正解するとゲーム終了です。不正解の場合は推理を続けられます。</p>
+    
+<div class="final-answer-panel">
+  <h3>FINAL ANSWER / 最終回答</h3>
+  <p class="muted">正解だと思うコードを入力してください。</p>
+
+  <div class="code-slots">
+    <label class="slot slot-a">
+      <span>▲ TRIANGLE</span>
+      <select id="finalDigitA" aria-label="最終回答の三角の数字">
+        <option>1</option><option>2</option><option>3</option>
+        <option>4</option><option>5</option>
+      </select>
+    </label>
+
+    <label class="slot slot-b">
+      <span>■ SQUARE</span>
+      <select id="finalDigitB" aria-label="最終回答の四角の数字">
+        <option>1</option><option>2</option><option>3</option>
+        <option>4</option><option>5</option>
+      </select>
+    </label>
+
+    <label class="slot slot-c">
+      <span>● CIRCLE</span>
+      <select id="finalDigitC" aria-label="最終回答の丸の数字">
+        <option>1</option><option>2</option><option>3</option>
+        <option>4</option><option>5</option>
+      </select>
+    </label>
+  </div>
+
+  <button id="submitGuess" class="primary-button">CODEを最終回答する</button>
+  <p class="muted small">※ 不正解でも提案コードと検証履歴は維持されます。</p>
+</div>
   </section>
 
   <section class="panel">
