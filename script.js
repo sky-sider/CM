@@ -3,83 +3,300 @@
 const TuringEngine = (() => {
   function generateAllCodes() {
     const codes = [];
-    for (let a = 1; a <= 5; a++) for (let b = 1; b <= 5; b++) for (let c = 1; c <= 5; c++) codes.push([a, b, c]);
+    for (let a = 1; a <= 5; a++) {
+      for (let b = 1; b <= 5; b++) {
+        for (let c = 1; c <= 5; c++) codes.push([a, b, c]);
+      }
+    }
     return codes;
   }
+
   function isValidCode(code) {
-    return Array.isArray(code) && code.length === 3 && code.every(n => Number.isInteger(n) && n >= 1 && n <= 5);
+    return Array.isArray(code) && code.length === 3 &&
+      code.every(n => Number.isInteger(n) && n >= 1 && n <= 5);
   }
-  function getDigit(code, position) {
-    if (!isValidCode(code)) throw new Error("暗号は1～5の数字を3つ指定してください。");
-    if (![0, 1, 2].includes(position)) throw new Error("数字の位置は0、1、2で指定してください。");
-    return code[position];
-  }
+
   function evaluate(code, criterion) {
-    if (!isValidCode(code)) throw new Error("暗号の形式が正しくありません。");
-    switch (criterion.operator) {
-      case "equalTo": return getDigit(code, criterion.position) === criterion.value;
-      case "greaterThan": return getDigit(code, criterion.position) > criterion.value;
-      case "lessThan": return getDigit(code, criterion.position) < criterion.value;
-      case "even": return getDigit(code, criterion.position) % 2 === 0;
-      case "odd": return getDigit(code, criterion.position) % 2 === 1;
-      case "sumGreaterThan": return code.reduce((sum, n) => sum + n, 0) > criterion.value;
-      case "sumLessThan": return code.reduce((sum, n) => sum + n, 0) < criterion.value;
-      case "allDifferent": return new Set(code).size === 3;
-      case "hasDuplicates": return new Set(code).size < 3;
-      default: throw new Error("未対応の条件です：" + criterion.operator);
+    if (!isValidCode(code)) throw new Error("暗号は1～5の数字を3つ指定してください。");
+    if (!criterion || typeof criterion.test !== "function") {
+      throw new Error("条件の定義が正しくありません。");
     }
+    return Boolean(criterion.test(code));
   }
-  function createVerifier(id, options) {
-    if (!Array.isArray(options) || options.length < 2) throw new Error("検証機には複数の条件候補が必要です。");
-    return { id, options, activeIndex: Math.floor(Math.random() * options.length) };
+
+  function createVerifier(id, card, activeCriterion) {
+    const options = card.options;
+    const activeIndex = options.indexOf(activeCriterion);
+    if (activeIndex < 0) throw new Error("選択した条件が検証カードにありません。");
+    return { id, cardId: card.id, cardName: card.name, options, activeIndex };
   }
+
   function askVerifier(code, verifier) {
     return evaluate(code, verifier.options[verifier.activeIndex]);
   }
+
   function filterCriteria(options, observationsForVerifier) {
     return options.filter(criterion => observationsForVerifier.every(observation =>
       evaluate(observation.code, criterion) === observation.passed
     ));
   }
+
   function filterCandidates(codes, observations, verifierOptions) {
     return codes.filter(code => verifierOptions.every(verifier => {
       const related = observations.filter(observation => observation.verifierId === verifier.id);
       if (related.length === 0) return true;
-      const possibleCriteria = verifier.options.filter(criterion => related.every(observation =>
-        evaluate(observation.code, criterion) === observation.passed
-      ));
+      const possibleCriteria = filterCriteria(verifier.options, related);
       return possibleCriteria.some(criterion => evaluate(code, criterion));
     }));
   }
-  return { generateAllCodes, isValidCode, getDigit, evaluate, createVerifier, askVerifier, filterCriteria, filterCandidates };
+
+  return { generateAllCodes, isValidCode, evaluate, createVerifier, askVerifier, filterCriteria, filterCandidates };
 })();
 
-const CRITERIA = [
-  {name:"三角の数字は1",position:0,operator:"equalTo",value:1},
-  {name:"三角の数字は3",position:0,operator:"equalTo",value:3},
-  {name:"三角の数字は5",position:0,operator:"equalTo",value:5},
-  {name:"三角の数字は3より大きい",position:0,operator:"greaterThan",value:3},
-  {name:"三角の数字は3より小さい",position:0,operator:"lessThan",value:3},
-  {name:"三角の数字は偶数",position:0,operator:"even"},
-  {name:"三角の数字は奇数",position:0,operator:"odd"},
-  {name:"四角の数字は2",position:1,operator:"equalTo",value:2},
-  {name:"四角の数字は4",position:1,operator:"equalTo",value:4},
-  {name:"四角の数字は3より大きい",position:1,operator:"greaterThan",value:3},
-  {name:"四角の数字は偶数",position:1,operator:"even"},
-  {name:"丸の数字は奇数",position:2,operator:"odd"},
-  {name:"3つの数字の合計は9より大きい",operator:"sumGreaterThan",value:9},
-  {name:"3つの数字の合計は8より小さい",operator:"sumLessThan",value:8},
-  {name:"3つの数字はすべて異なる",operator:"allDifferent"},
-  {name:"同じ数字が含まれている",operator:"hasDuplicates"},
-  {name:"四角の数字は1",position:1,operator:"equalTo",value:1},
-  {name:"四角の数字は3",position:1,operator:"equalTo",value:3},
-  {name:"四角の数字は5",position:1,operator:"equalTo",value:5},
-  {name:"丸の数字は1",position:2,operator:"equalTo",value:1},
-  {name:"丸の数字は2",position:2,operator:"equalTo",value:2},
-  {name:"丸の数字は3",position:2,operator:"equalTo",value:3},
-  {name:"丸の数字は4",position:2,operator:"equalTo",value:4},
-  {name:"丸の数字は5",position:2,operator:"equalTo",value:5}
-];
+// 公式版の条件カード48種類。
+// 各カードに書かれている「条件候補」をひとまとまりにし、
+// その中から1つだけを検証機の実際の条件として選びます。
+const SHAPE = ["▲", "■", "●"];
+const CRITERIA_CARDS = [];
+
+function makeCriterion(name, test) {
+  return { name, test };
+}
+function addCard(id, name, options) {
+  CRITERIA_CARDS.push({ id, name, options });
+}
+function digitCriterion(pos, description, test) {
+  return makeCriterion(SHAPE[pos] + "の数字は" + description, code => test(code[pos]));
+}
+function compareToValue(pos, value) {
+  return [
+    digitCriterion(pos, value + "より小さい", n => n < value),
+    digitCriterion(pos, value + "と等しい", n => n === value),
+    digitCriterion(pos, value + "より大きい", n => n > value)
+  ];
+}
+function comparePositions(posA, posB) {
+  return [
+    makeCriterion(SHAPE[posA] + "は" + SHAPE[posB] + "より小さい", code => code[posA] < code[posB]),
+    makeCriterion(SHAPE[posA] + "と" + SHAPE[posB] + "は等しい", code => code[posA] === code[posB]),
+    makeCriterion(SHAPE[posA] + "は" + SHAPE[posB] + "より大きい", code => code[posA] > code[posB])
+  ];
+}
+function countOptions(value, valueName = String(value)) {
+  return [0, 1, 2, 3].map(count =>
+    makeCriterion("コード内の「" + valueName + "」はちょうど" + count + "個", code =>
+      code.filter(n => n === value).length === count)
+  );
+}
+function parityOptions(pos) {
+  return [
+    digitCriterion(pos, "偶数", n => n % 2 === 0),
+    digitCriterion(pos, "奇数", n => n % 2 === 1)
+  ];
+}
+function countEven(code) { return code.filter(n => n % 2 === 0).length; }
+function countOdd(code) { return code.filter(n => n % 2 === 1).length; }
+function sum(code) { return code.reduce((total, n) => total + n, 0); }
+function pairSumOptions(target) {
+  return [[0, 1], [1, 2], [0, 2]].map(([a, b]) =>
+    makeCriterion(SHAPE[a] + "と" + SHAPE[b] + "の合計は" + target, code => code[a] + code[b] === target)
+  );
+}
+function compareDigitWithValue(pos, value, relation) {
+  const label = relation === "lt" ? "より小さい" : relation === "eq" ? "と等しい" : "より大きい";
+  return digitCriterion(pos, value + label, n =>
+    relation === "lt" ? n < value : relation === "eq" ? n === value : n > value);
+}
+function countRelationOptions(value) {
+  const options = [];
+  for (let pos = 0; pos < 3; pos++) {
+    options.push(compareDigitWithValue(pos, value, "lt"));
+    options.push(compareDigitWithValue(pos, value, "eq"));
+    options.push(compareDigitWithValue(pos, value, "gt"));
+  }
+  return options;
+}
+function allDifferentCriterion() {
+  return makeCriterion("3つの数字はすべて異なる", code => new Set(code).size === 3);
+}
+function onePairCriterion() {
+  return makeCriterion("同じ数字がちょうど2つある", code => new Set(code).size === 2);
+}
+function noPairCriterion() {
+  return makeCriterion("同じ数字のペアがない（3つ同じ場合も含む）", code => new Set(code).size !== 2);
+}
+function orderOptions() {
+  return [
+    makeCriterion("3つの数字は小さい順に並ぶ", code => code[0] < code[1] && code[1] < code[2]),
+    makeCriterion("3つの数字は大きい順に並ぶ", code => code[0] > code[1] && code[1] > code[2]),
+    makeCriterion("小さい順でも大きい順でもない", code =>
+      !(code[0] < code[1] && code[1] < code[2]) &&
+      !(code[0] > code[1] && code[1] > code[2]))
+  ];
+}
+function smallestOptions(strict = true) {
+  return [0, 1, 2].map(pos => makeCriterion(
+    SHAPE[pos] + "の数字が最小" + (strict ? "（他の2つより小さい）" : "（他の2つ以下）"),
+    code => strict
+      ? code[pos] < code[(pos + 1) % 3] && code[pos] < code[(pos + 2) % 3]
+      : code[pos] <= code[(pos + 1) % 3] && code[pos] <= code[(pos + 2) % 3]
+  ));
+}
+function largestOptions(strict = true) {
+  return [0, 1, 2].map(pos => makeCriterion(
+    SHAPE[pos] + "の数字が最大" + (strict ? "（他の2つより大きい）" : "（他の2つ以上）"),
+    code => strict
+      ? code[pos] > code[(pos + 1) % 3] && code[pos] > code[(pos + 2) % 3]
+      : code[pos] >= code[(pos + 1) % 3] && code[pos] >= code[(pos + 2) % 3]
+  ));
+}
+function consecutiveAscendingOptions() {
+  return [
+    makeCriterion("連続する数字がない（昇順）", code =>
+      !((code[1] === code[0] + 1) || (code[2] === code[1] + 1))),
+    makeCriterion("隣り合う2つが連続する（昇順）", code =>
+      Number(code[1] === code[0] + 1) + Number(code[2] === code[1] + 1) === 1),
+    makeCriterion("3つすべてが連続する（昇順）", code =>
+      code[1] === code[0] + 1 && code[2] === code[1] + 1)
+  ];
+}
+function consecutiveEitherDirectionOptions() {
+  return [
+    makeCriterion("連続する数字がない（昇順・降順）", code =>
+      Math.abs(code[1] - code[0]) !== 1 && Math.abs(code[2] - code[1]) !== 1),
+    makeCriterion("隣り合う2つだけが連続する（昇順・降順）", code =>
+      (Number(Math.abs(code[1] - code[0]) === 1) + Number(Math.abs(code[2] - code[1]) === 1) >= 1) && !((code[1] === code[0] + 1 && code[2] === code[1] + 1) || (code[1] === code[0] - 1 && code[2] === code[1] - 1))),
+    makeCriterion("3つすべてが連続する（昇順・降順）", code =>
+      ((code[1] === code[0] + 1 && code[2] === code[1] + 1) || (code[1] === code[0] - 1 && code[2] === code[1] - 1)))
+  ];
+}
+
+// 1～7：1桁の数字を比較する条件、偶数・奇数
+addCard(1, "数字を1と比較", [
+  digitCriterion(0, "1", n => n === 1),
+  digitCriterion(0, "1より大きい", n => n > 1)
+]);
+addCard(2, "▲の数字を3と比較", compareToValue(0, 3));
+addCard(3, "■の数字を3と比較", compareToValue(1, 3));
+addCard(4, "■の数字を4と比較", compareToValue(1, 4));
+addCard(5, "▲の偶数・奇数", parityOptions(0));
+addCard(6, "■の偶数・奇数", parityOptions(1));
+addCard(7, "●の偶数・奇数", parityOptions(2));
+
+// 8～10：数字1・3・4がコードに何個含まれるか
+addCard(8, "数字1の個数", countOptions(1));
+addCard(9, "数字3の個数", countOptions(3));
+addCard(10, "数字4の個数", countOptions(4));
+
+// 11～13：2つの位置の数字を比較
+addCard(11, "▲と■を比較", comparePositions(0, 1));
+addCard(12, "▲と●を比較", comparePositions(0, 2));
+addCard(13, "■と●を比較", comparePositions(1, 2));
+
+// 14～25：大小関係、偶奇の個数、合計、重複、並び順、連続数
+addCard(14, "最小の数字", smallestOptions(true));
+addCard(15, "最大の数字", largestOptions(true));
+addCard(16, "偶数と奇数の個数", [
+  makeCriterion("偶数の方が奇数より多い", code => countEven(code) > countOdd(code)),
+  makeCriterion("奇数の方が偶数より多い", code => countOdd(code) > countEven(code))
+]);
+addCard(17, "偶数の個数", [0, 1, 2, 3].map(count =>
+  makeCriterion("コード内の偶数はちょうど" + count + "個", code => countEven(code) === count)
+));
+addCard(18, "3つの合計の偶奇", [
+  makeCriterion("3つの数字の合計は偶数", code => sum(code) % 2 === 0),
+  makeCriterion("3つの数字の合計は奇数", code => sum(code) % 2 === 1)
+]);
+addCard(19, "▲と■の合計を6と比較", [
+  makeCriterion("▲＋■は6より小さい", code => code[0] + code[1] < 6),
+  makeCriterion("▲＋■は6", code => code[0] + code[1] === 6),
+  makeCriterion("▲＋■は6より大きい", code => code[0] + code[1] > 6)
+]);
+addCard(20, "同じ数字の重複回数", [
+  allDifferentCriterion(),
+  onePairCriterion(),
+  makeCriterion("3つの数字がすべて同じ", code => new Set(code).size === 1)
+]);
+addCard(21, "ペアがあるか", [
+  noPairCriterion(),
+  onePairCriterion()
+]);
+addCard(22, "数字の並び順", orderOptions());
+addCard(23, "3つの合計を6と比較", [
+  makeCriterion("3つの合計は6より小さい", code => sum(code) < 6),
+  makeCriterion("3つの合計は6", code => sum(code) === 6),
+  makeCriterion("3つの合計は6より大きい", code => sum(code) > 6)
+]);
+addCard(24, "昇順の連続する数字", consecutiveAscendingOptions());
+addCard(25, "昇順・降順の連続する数字", consecutiveEitherDirectionOptions());
+
+// 26～35：各位置の数字の範囲、偶奇、最小・最大
+addCard(26, "どの位置の数字が3未満か", [0, 1, 2].map(pos =>
+  digitCriterion(pos, "3より小さい", n => n < 3)
+));
+addCard(27, "どの位置の数字が4未満か", [0, 1, 2].map(pos =>
+  digitCriterion(pos, "4より小さい", n => n < 4)
+));
+addCard(28, "どの位置の数字が1か", [0, 1, 2].map(pos =>
+  digitCriterion(pos, "1", n => n === 1)
+));
+addCard(29, "どの位置の数字が3か", [0, 1, 2].map(pos =>
+  digitCriterion(pos, "3", n => n === 3)
+));
+addCard(30, "どの位置の数字が4か", [0, 1, 2].map(pos =>
+  digitCriterion(pos, "4", n => n === 4)
+));
+addCard(31, "どの位置の数字が1より大きいか", [0, 1, 2].map(pos =>
+  digitCriterion(pos, "1より大きい", n => n > 1)
+));
+addCard(32, "どの位置の数字が3より大きいか", [0, 1, 2].map(pos =>
+  digitCriterion(pos, "3より大きい", n => n > 3)
+));
+addCard(33, "どの位置の数字が偶数・奇数か", [0, 1, 2].flatMap(pos => parityOptions(pos)));
+addCard(34, "最小（同数を含む）", smallestOptions(false));
+addCard(35, "最大（同数を含む）", largestOptions(false));
+
+// 36～48：合計、位置間の比較、数字の個数
+addCard(36, "合計が何の倍数か", [3, 4, 5].map(divisor =>
+  makeCriterion("3つの合計は" + divisor + "の倍数", code => sum(code) % divisor === 0)
+));
+addCard(37, "2つの数字の合計が4", pairSumOptions(4));
+addCard(38, "2つの数字の合計が6", pairSumOptions(6));
+addCard(39, "どの位置の数字が1か1より大きいか", [0, 1, 2].flatMap(pos => [
+  digitCriterion(pos, "1", n => n === 1),
+  digitCriterion(pos, "1より大きい", n => n > 1)
+]));
+addCard(40, "どの位置の数字を3と比較", countRelationOptions(3));
+addCard(41, "どの位置の数字を4と比較", countRelationOptions(4));
+addCard(42, "どの位置の数字が最小または最大か", [
+  ...smallestOptions(true),
+  ...largestOptions(true)
+]);
+addCard(43, "▲を■または●と比較", [
+  ...comparePositions(0, 1),
+  ...comparePositions(0, 2)
+]);
+addCard(44, "▲と■、または■と●を比較", [
+  ...comparePositions(0, 1),
+  ...comparePositions(1, 2)
+]);
+addCard(45, "数字1または3の個数", [
+  ...countOptions(1, "1").map(c => makeCriterion(c.name, c.test)),
+  ...countOptions(3, "3").map(c => makeCriterion(c.name, c.test))
+]);
+addCard(46, "数字3または4の個数", [
+  ...countOptions(3, "3").map(c => makeCriterion(c.name, c.test)),
+  ...countOptions(4, "4").map(c => makeCriterion(c.name, c.test))
+]);
+addCard(47, "数字1または4の個数", [
+  ...countOptions(1, "1").map(c => makeCriterion(c.name, c.test)),
+  ...countOptions(4, "4").map(c => makeCriterion(c.name, c.test))
+]);
+addCard(48, "2つの位置を比較", [
+  ...comparePositions(0, 1),
+  ...comparePositions(0, 2),
+  ...comparePositions(1, 2)
+]);
 
 let secretCode = [];
 let verifiers = [];
@@ -223,7 +440,7 @@ function testVerifier(index) {
     result.classList.add(passed ? "pass" : "fail");
   }
   addLog("ラウンド " + currentRound + " ／ コード " + roundProposal.join("") +
-    " ／ 検証機 " + verifier.id + "：" + (passed ? "合格" : "不合格"));
+    " ／ 検証機 " + verifier.id + "（条件カード " + verifier.cardId + "）：" + (passed ? "合格" : "不合格"));
 
   if (questionsThisRound >= MAX_QUESTIONS_PER_ROUND) {
     roundFinished = true;
@@ -260,41 +477,65 @@ function submitGuess() {
   }
 }
 
-// 4つの条件を同時に満たすコードが、正解1通りになる組み合わせを探す。
+// 4つの条件カードから、正解コードだけが残る組み合わせを探す。
+// 各検証機には、選んだ公式カードの候補をすべて表示する。
 function findUniqueActiveCriteria(code) {
   const allCodes = TuringEngine.generateAllCodes();
-  const matchingCriteria = CRITERIA.filter(criterion => TuringEngine.evaluate(code, criterion));
+  const passingOptionsByCard = CRITERIA_CARDS.map(card => ({
+    card,
+    passingOptions: card.options.filter(criterion => TuringEngine.evaluate(code, criterion))
+  })).filter(entry => entry.passingOptions.length > 0);
 
-  function search(startIndex, selected, possibleCodes) {
-    if (selected.length === 4) return possibleCodes.length === 1 ? selected : null;
-    const needed = 4 - selected.length;
-    for (let i = startIndex; i <= matchingCriteria.length - needed; i++) {
-      const criterion = matchingCriteria[i];
-      const filteredCodes = possibleCodes.filter(candidate => TuringEngine.evaluate(candidate, criterion));
-      const secretStillPossible = filteredCodes.some(candidate =>
-        candidate.every((digit, index) => digit === code[index])
-      );
-      if (!secretStillPossible) continue;
-      const result = search(i + 1, [...selected, criterion], filteredCodes);
-      if (result) return result;
+  for (let attempt = 0; attempt < 180; attempt++) {
+    let possibleCodes = allCodes;
+    const selected = [];
+    const usedCardIds = new Set();
+
+    while (selected.length < 4) {
+      if (possibleCodes.length === 1) {
+        const fillers = passingOptionsByCard.filter(entry => !usedCardIds.has(entry.card.id));
+        for (const entry of fillers) {
+          if (selected.length >= 4) break;
+          selected.push({ card: entry.card, criterion: entry.passingOptions[0] });
+          usedCardIds.add(entry.card.id);
+        }
+        break;
+      }
+
+      const choices = [];
+      for (const entry of passingOptionsByCard) {
+        if (usedCardIds.has(entry.card.id)) continue;
+        for (const criterion of entry.passingOptions) {
+          const filtered = possibleCodes.filter(candidate => TuringEngine.evaluate(candidate, criterion));
+          if (filtered.length > 0) {
+            choices.push({ card: entry.card, criterion, filtered, remaining: filtered.length });
+          }
+        }
+      }
+      if (choices.length === 0) break;
+
+      choices.sort((a, b) => a.remaining - b.remaining);
+      const bestPool = choices.slice(0, Math.min(12, choices.length));
+      const chosen = bestPool[Math.floor(Math.random() * bestPool.length)];
+      selected.push({ card: chosen.card, criterion: chosen.criterion });
+      usedCardIds.add(chosen.card.id);
+      possibleCodes = chosen.filtered;
     }
-    return null;
+
+    if (selected.length === 4 && possibleCodes.length === 1) return selected;
   }
-  return search(0, [], allCodes);
+  return null;
 }
 
-function createVerifierWithActiveCriterion(id, activeCriterion) {
-  const otherCriteria = CRITERIA.filter(criterion => criterion !== activeCriterion);
-  const distractors = [...otherCriteria].sort(() => Math.random() - 0.5).slice(0, 2);
-  const options = [activeCriterion, ...distractors].sort(() => Math.random() - 0.5);
-  const verifier = TuringEngine.createVerifier(id, options);
-  verifier.activeIndex = options.indexOf(activeCriterion);
-  return verifier;
+function createVerifierWithActiveCriterion(id, card, activeCriterion) {
+  return TuringEngine.createVerifier(id, card, activeCriterion);
 }
 function renderVerifierOptions() {
   verifiers.forEach((verifier, index) => {
     const container = document.getElementById("criteriaOptions" + index);
     if (!container) return;
+    const heading = container.parentElement.querySelector(".criteria-heading");
+    if (heading) heading.textContent = "CRITERIA CARD #" + verifier.cardId + " / " + verifier.id;
     container.replaceChildren();
     verifier.options.forEach((criterion, optionIndex) => {
       const item = document.createElement("div");
@@ -312,7 +553,7 @@ function renderVerifierOptions() {
 
 function newGame() {
   let puzzle = null;
-  for (let attempt = 0; attempt < 1000; attempt++) {
+  for (let attempt = 0; attempt < 80; attempt++) {
     const code = [
       Math.floor(Math.random() * 5) + 1,
       Math.floor(Math.random() * 5) + 1,
@@ -330,8 +571,8 @@ function newGame() {
   }
 
   secretCode = [...puzzle.code];
-  verifiers = puzzle.activeCriteria.map((criterion, index) =>
-    createVerifierWithActiveCriterion(String.fromCharCode(65 + index), criterion)
+  verifiers = puzzle.activeCriteria.map((entry, index) =>
+    createVerifierWithActiveCriterion(String.fromCharCode(65 + index), entry.card, entry.criterion)
   );
 
   observations = [];
