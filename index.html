@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -8,212 +7,67 @@
   <title>TURING MACHINE | ANALYSIS LAB</title>
   <link rel="stylesheet" href="style.css">
   <script src="script.js" defer></script>
-
   <style>
-    .criteria-panel {
-      margin: 14px 0;
-      padding: 12px;
-      border: 1px solid rgba(105, 211, 232, 0.25);
-      border-radius: 8px;
-      background: rgba(5, 15, 25, 0.55);
-      text-align: left;
-    }
-
-    .criteria-heading {
-      margin: 0 0 9px;
-      color: #8de7f4;
-      font-size: 0.75rem;
-      letter-spacing: 0.12em;
-    }
-
-    .criteria-list {
-      display: grid;
-      gap: 7px;
-    }
-
-    .criteria-option {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 9px;
-      border-radius: 5px;
-      background: rgba(141, 231, 244, 0.06);
-      color: #d7e5ed;
-      font-size: 0.85rem;
-      line-height: 1.5;
-      overflow-wrap: anywhere;
-    }
-
-    .criteria-number {
-      flex: 0 0 auto;
-      color: #8de7f4;
-      font-weight: bold;
-    }
-
-    .criteria-note {
-      margin: 9px 0 0;
-      color: #8fa8b8;
-      font-size: 0.72rem;
-      line-height: 1.5;
-    }
+    .criteria-panel{margin:14px 0;padding:12px;border:1px solid rgba(105,211,232,.25);border-radius:8px;background:rgba(5,15,25,.55);text-align:left}
+    .criteria-heading{margin:0 0 9px;color:#8de7f4;font-size:.75rem;letter-spacing:.12em}
+    .criteria-list{display:grid;gap:7px}
+    .criteria-option{display:flex;align-items:flex-start;gap:8px;padding:9px;border-radius:5px;background:rgba(141,231,244,.06);color:#d7e5ed;font-size:.85rem;line-height:1.5;overflow-wrap:anywhere}
+    .criteria-number{flex:0 0 auto;color:#8de7f4;font-weight:bold}
+    .criteria-note{margin:9px 0 0;color:#8fa8b8;font-size:.72rem;line-height:1.5}
   </style>
 </head>
-
 <body>
-  <main class="terminal">
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-icon">TM</span>
-        <div>
-          <p class="eyebrow">LOGIC ANALYSIS SYSTEM</p>
-          <h1>TURING MACHINE</h1>
-        </div>
-      </div>
-      <span class="status"><i></i> SYSTEM ONLINE</span>
-    </header>
+<main class="terminal">
+  <header class="topbar">
+    <div class="brand"><span class="brand-icon">TM</span><div><p class="eyebrow">LOGIC ANALYSIS SYSTEM</p><h1>TURING MACHINE</h1></div></div>
+    <span class="status"><i></i> SYSTEM ONLINE</span>
+  </header>
 
-    <section class="intro panel">
-      <p class="eyebrow">SOLO CHALLENGE / 001</p>
-      <h2>秘密のコードを解読せよ。</h2>
-      <p>3桁のコードを提案し、検証器の回答から正解を推理してください。</p>
-      <div class="rules">
-        <span>数字：1〜5</span>
-        <span>検証器：3基</span>
-        <span>モード：一人用</span>
-      </div>
-    </section>
+  <section class="intro panel">
+    <p class="eyebrow">SOLO CHALLENGE / 001</p>
+    <h2>秘密のコードを解読せよ。</h2>
+    <p>3桁のコードを提案し、検証器の回答から正解を推理してください。</p>
+    <div class="rules"><span>数字：1〜5</span><span>検証器：4基</span><span>各ラウンド最大3回</span><span>モード：一人用</span></div>
+    <div class="round-status" aria-live="polite">
+      <strong id="roundStatus">ROUND 1</strong>
+      <span id="questionStatus">このラウンドの質問：0 / 3</span>
+      <span id="totalQuestionStatus">総質問数：0</span>
+    </div>
+  </section>
 
-    <section class="panel">
-      <div class="section-heading">
-        <span class="section-number">01</span>
-        <h2>CODE INPUT</h2>
-      </div>
-      <p class="muted">各スロットの数字を選択してください。</p>
+  <section class="panel">
+    <div class="section-heading"><span class="section-number">01</span><h2>CODE INPUT</h2></div>
+    <p class="muted">各スロットの数字を選択してください。最初の検証後、ラウンド終了までコードは固定されます。</p>
+    <div class="code-slots">
+      <label class="slot slot-a"><span>▲ TRIANGLE</span><select id="digitA" aria-label="三角の数字"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+      <label class="slot slot-b"><span>■ SQUARE</span><select id="digitB" aria-label="四角の数字"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+      <label class="slot slot-c"><span>● CIRCLE</span><select id="digitC" aria-label="丸の数字"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+    </div>
+    <button id="submitGuess" class="primary-button">CODEを最終回答する</button>
+    <p class="muted small">※ 正解するとゲーム終了です。不正解の場合は推理を続けられます。</p>
+  </section>
 
-      <div class="code-slots">
-        <label class="slot slot-a">
-          <span>▲ TRIANGLE</span>
-          <select id="digitA" aria-label="三角の数字">
-            <option>1</option><option>2</option><option>3</option>
-            <option>4</option><option>5</option>
-          </select>
-        </label>
+  <section class="panel">
+    <div class="section-heading"><span class="section-number">02</span><h2>VERIFIER ARRAY</h2></div>
+    <p class="muted">条件候補を確認し、現在の提案コードを検証器にテストします。1ラウンド中、同じ検証器への質問は1回までです。</p>
+    <div class="verifier-grid">
+      <article class="verifier"><div class="verifier-top"><span>UNIT A</span><span>▲</span></div><div class="orb">A</div><p>検証器 A</p><div class="criteria-panel"><p class="criteria-heading">POSSIBLE CRITERIA / A</p><div id="criteriaOptions0" class="criteria-list"><div class="criteria-option">条件候補を準備しています…</div></div><p class="criteria-note">実際に使われている条件は、この候補のうち1つです。</p></div><button class="test-button" data-verifier="0">テスト実行</button><div class="result" id="result0">未検証</div></article>
+      <article class="verifier"><div class="verifier-top"><span>UNIT B</span><span>■</span></div><div class="orb">B</div><p>検証器 B</p><div class="criteria-panel"><p class="criteria-heading">POSSIBLE CRITERIA / B</p><div id="criteriaOptions1" class="criteria-list"><div class="criteria-option">条件候補を準備しています…</div></div><p class="criteria-note">実際に使われている条件は、この候補のうち1つです。</p></div><button class="test-button" data-verifier="1">テスト実行</button><div class="result" id="result1">未検証</div></article>
+      <article class="verifier"><div class="verifier-top"><span>UNIT C</span><span>●</span></div><div class="orb">C</div><p>検証器 C</p><div class="criteria-panel"><p class="criteria-heading">POSSIBLE CRITERIA / C</p><div id="criteriaOptions2" class="criteria-list"><div class="criteria-option">条件候補を準備しています…</div></div><p class="criteria-note">実際に使われている条件は、この候補のうち1つです。</p></div><button class="test-button" data-verifier="2">テスト実行</button><div class="result" id="result2">未検証</div></article>
+      <article class="verifier"><div class="verifier-top"><span>UNIT D</span><span>◆</span></div><div class="orb">D</div><p>検証器 D</p><div class="criteria-panel"><p class="criteria-heading">POSSIBLE CRITERIA / D</p><div id="criteriaOptions3" class="criteria-list"><div class="criteria-option">条件候補を準備しています…</div></div><p class="criteria-note">実際に使われている条件は、この候補のうち1つです。</p></div><button class="test-button" data-verifier="3">テスト実行</button><div class="result" id="result3">未検証</div></article>
+    </div>
+    <button id="nextRound" class="secondary-button" disabled>このラウンドを終了して次へ</button>
+    <p class="muted small">質問は1ラウンド最大3回です。3回未満でラウンドを終えてもかまいません。過去の検証履歴は次のラウンドにも引き継がれます。</p>
+  </section>
 
-        <label class="slot slot-b">
-          <span>■ SQUARE</span>
-          <select id="digitB" aria-label="四角の数字">
-            <option>1</option><option>2</option><option>3</option>
-            <option>4</option><option>5</option>
-          </select>
-        </label>
+  <section class="panel">
+    <div class="section-heading"><span class="section-number">03</span><h2>ANALYSIS LOG</h2></div>
+    <div id="message" class="message" role="status" aria-live="polite">システム起動完了。コードを入力してください。</div>
+    <div id="history" class="history"><p class="muted">まだ解析記録はありません。</p></div>
+    <button id="newGame" class="secondary-button">新しい問題を開始</button>
+  </section>
 
-        <label class="slot slot-c">
-          <span>● CIRCLE</span>
-          <select id="digitC" aria-label="丸の数字">
-            <option>1</option><option>2</option><option>3</option>
-            <option>4</option><option>5</option>
-          </select>
-        </label>
-      </div>
-
-      <button id="submitGuess" class="primary-button">
-        CODEを最終回答する
-      </button>
-      <p class="muted small">※ 最終回答は正解判定を行います。</p>
-    </section>
-
-    <section class="panel">
-      <div class="section-heading">
-        <span class="section-number">02</span>
-        <h2>VERIFIER ARRAY</h2>
-      </div>
-      <p class="muted">
-        条件候補を確認し、現在のコードを検証器にテストします。
-      </p>
-
-      <div class="verifier-grid">
-        <article class="verifier">
-          <div class="verifier-top"><span>UNIT A</span><span>▲</span></div>
-          <div class="orb">A</div>
-          <p>検証器 A</p>
-
-          <div class="criteria-panel">
-            <p class="criteria-heading">POSSIBLE CRITERIA / A</p>
-            <div id="criteriaOptions0" class="criteria-list">
-              <div class="criteria-option">条件候補を準備しています…</div>
-            </div>
-            <p class="criteria-note">
-              実際に使われている条件は、この候補のうち1つです。
-            </p>
-          </div>
-
-          <button class="test-button" data-verifier="0">テスト実行</button>
-          <div class="result" id="result0">未検証</div>
-        </article>
-
-        <article class="verifier">
-          <div class="verifier-top"><span>UNIT B</span><span>■</span></div>
-          <div class="orb">B</div>
-          <p>検証器 B</p>
-
-          <div class="criteria-panel">
-            <p class="criteria-heading">POSSIBLE CRITERIA / B</p>
-            <div id="criteriaOptions1" class="criteria-list">
-              <div class="criteria-option">条件候補を準備しています…</div>
-            </div>
-            <p class="criteria-note">
-              実際に使われている条件は、この候補のうち1つです。
-            </p>
-          </div>
-
-          <button class="test-button" data-verifier="1">テスト実行</button>
-          <div class="result" id="result1">未検証</div>
-        </article>
-
-        <article class="verifier">
-          <div class="verifier-top"><span>UNIT C</span><span>●</span></div>
-          <div class="orb">C</div>
-          <p>検証器 C</p>
-
-          <div class="criteria-panel">
-            <p class="criteria-heading">POSSIBLE CRITERIA / C</p>
-            <div id="criteriaOptions2" class="criteria-list">
-              <div class="criteria-option">条件候補を準備しています…</div>
-            </div>
-            <p class="criteria-note">
-              実際に使われている条件は、この候補のうち1つです。
-            </p>
-          </div>
-
-          <button class="test-button" data-verifier="2">テスト実行</button>
-          <div class="result" id="result2">未検証</div>
-        </article>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="section-heading">
-        <span class="section-number">03</span>
-        <h2>ANALYSIS LOG</h2>
-      </div>
-
-      <div id="message" class="message" role="status" aria-live="polite">
-        システム起動完了。コードを入力してください。
-      </div>
-
-      <div id="history" class="history">
-        <p class="muted">まだ解析記録はありません。</p>
-      </div>
-
-      <button id="newGame" class="secondary-button">
-        新しい問題を開始
-      </button>
-    </section>
-
-    <footer>
-      <p>ANALYSIS LAB // LOCAL SESSION</p>
-      <p>LOGIC • DEDUCTION • VERIFICATION</p>
-    </footer>
-  </main>
+  <footer><p>ANALYSIS LAB // LOCAL SESSION</p><p>LOGIC • DEDUCTION • VERIFICATION</p></footer>
+</main>
 </body>
 </html>
