@@ -318,6 +318,15 @@ function getProposal() {
   if (!a || !b || !c) return null;
   return [Number(a.value), Number(b.value), Number(c.value)];
 }
+function getFinalGuess() {
+  const a = document.getElementById("finalDigitA");
+  const b = document.getElementById("finalDigitB");
+  const c = document.getElementById("finalDigitC");
+
+  if (!a || !b || !c) return null;
+
+  return [Number(a.value), Number(b.value), Number(c.value)];
+}
 function validProposal(code) { return TuringEngine.isValidCode(code); }
 
 function setMessage(message, kind = "") {
@@ -454,22 +463,41 @@ function submitGuess() {
     setMessage("このゲームは終了しています。「新しい問題を開始」してください。");
     return;
   }
+
   if (totalQuestions === 0) {
     setMessage("まず検証機に質問し、手がかりを集めてください。", "error");
     return;
   }
-  const guess = getProposal();
+
+  const guess = getFinalGuess();
+
   if (!validProposal(guess)) {
-    setMessage("各数字に1～5を入力してください。", "error");
+    setMessage("最終回答の各数字に1～5を入力してください。", "error");
     return;
   }
+
   if (guess.every((digit, index) => digit === secretCode[index])) {
     gameFinished = true;
-    setMessage("正解です！ " + currentRound + "ラウンド・総質問数" + totalQuestions + "回で暗号を特定しました。", "success");
-    addLog("正解：" + guess.join("") + " ／ " + currentRound + "ラウンド・総質問数" + totalQuestions + "回");
+
+    setMessage(
+      "正解です！ " + currentRound +
+      "ラウンド・総質問数" + totalQuestions + "回で暗号を特定しました。",
+      "success"
+    );
+
+    addLog(
+      "正解：" + guess.join("") +
+      " ／ " + currentRound +
+      "ラウンド・総質問数" + totalQuestions + "回"
+    );
+
     updateControls();
   } else {
-    setMessage("不正解です。検証履歴を見直して、次のラウンドで推理を続けましょう。", "error");
+    setMessage(
+      "不正解です。提案コードと検証履歴はそのままです。手がかりを見直して推理を続けましょう。",
+      "error"
+    );
+
     addLog("最終回答 " + guess.join("") + " は不正解でした。");
   }
 }
@@ -635,10 +663,14 @@ function newGame() {
 
   renderVerifierCards(verifierCount);
   renderVerifierOptions();
-  ["digitA", "digitB", "digitC"].forEach(id => {
-    const input = document.getElementById(id);
-    if (input) { input.value = "1"; input.disabled = false; }
-  });
+["digitA", "digitB", "digitC",
+ "finalDigitA", "finalDigitB", "finalDigitC"].forEach(id => {
+  const input = document.getElementById(id);
+  if (input) {
+    input.value = "1";
+    input.disabled = false;
+  }
+});
   resetVerifierResults();
   setMessage("「" + difficulty.label + "」モード・判定機" + verifierCount + "基で新しい問題を生成しました（使用カード：1～" + difficulty.maxCardId + "）。提案コードを決め、判定機に質問してください。");
   renderHistory();
