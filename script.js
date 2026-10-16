@@ -388,12 +388,9 @@ function renderCandidateCount() {
   panel.textContent = "現在の暗号候補：" + candidates.length + "通り";
 }
 function resetVerifierResults() {
-  [0, 1, 2, 3].forEach(index => {
-    const result = document.getElementById("result" + index);
-    if (result) {
-      result.textContent = "未検証";
-      result.classList.remove("pass", "fail");
-    }
+  document.querySelectorAll(".result").forEach(result => {
+    result.textContent = "未検証";
+    result.classList.remove("pass", "fail");
   });
 }
 
@@ -477,11 +474,60 @@ function submitGuess() {
   }
 }
 
-// 4つの条件カードから、正解コードだけが残る組み合わせを探す。
-// 各検証機には、選んだ公式カードの候補をすべて表示する。
-function findUniqueActiveCriteria(code) {
+// 選択された数（4〜6基）の条件カードから、正解コードだけが残る組み合わせを探す。
+// 各判定機には、選んだカードの候補をすべて表示する。
+const DIFFICULTY_SETTINGS = {
+  beginner: { label: "入門", maxCardId: 17 },
+  standard: { label: "標準", maxCardId: 22 },
+  advanced: { label: "上級", maxCardId: 48 }
+};
+
+function getSelectedDifficulty() {
+  const selector = document.getElementById("difficulty");
+  const key = selector && DIFFICULTY_SETTINGS[selector.value] ? selector.value : "beginner";
+  return { key, ...DIFFICULTY_SETTINGS[key] };
+}
+
+function getSelectedVerifierCount() {
+  const selector = document.getElementById("verifierCount");
+  const count = selector ? Number(selector.value) : 4;
+  return [4, 5, 6].includes(count) ? count : 4;
+}
+
+function renderVerifierCards(count) {
+  const grid = document.getElementById("verifierGrid");
+  if (!grid) return;
+  const symbols = ["▲", "■", "●", "◆", "★", "⬟"];
+  grid.replaceChildren();
+
+  for (let index = 0; index < count; index++) {
+    const id = String.fromCharCode(65 + index);
+    const card = document.createElement("article");
+    card.className = "verifier";
+    card.innerHTML = `
+      <div class="verifier-top"><span>UNIT ${id}</span><span>${symbols[index]}</span></div>
+      <div class="orb">${id}</div>
+      <p>判定機 ${id}</p>
+      <div class="criteria-panel">
+        <p class="criteria-heading">POSSIBLE CRITERIA / ${id}</p>
+        <div id="criteriaOptions${index}" class="criteria-list">
+          <div class="criteria-option">条件候補を準備しています…</div>
+        </div>
+        <p class="criteria-note">実際に使われている条件は、この候補のうち1つです。</p>
+      </div>
+      <button class="test-button" data-verifier="${index}">テスト実行</button>
+      <div class="result" id="result${index}">未検証</div>
+    `;
+    grid.appendChild(card);
+  }
+  grid.style.setProperty("--verifier-count", String(count));
+  const countLabel = document.getElementById("verifierCountRule");
+  if (countLabel) countLabel.textContent = "判定機：" + count + "基";
+}
+
+function findUniqueActiveCriteria(code, maxCardId, verifierCount) {
   const allCodes = TuringEngine.generateAllCodes();
-  const passingOptionsByCard = CRITERIA_CARDS.map(card => ({
+  const passingOptionsByCard = CRITERIA_CARDS.filter(card => card.id <= maxCardId).map(card => ({
     card,
     passingOptions: card.options.filter(criterion => TuringEngine.evaluate(code, criterion))
   })).filter(entry => entry.passingOptions.length > 0);
@@ -491,11 +537,11 @@ function findUniqueActiveCriteria(code) {
     const selected = [];
     const usedCardIds = new Set();
 
-    while (selected.length < 4) {
+    while (selected.length < verifierCount) {
       if (possibleCodes.length === 1) {
         const fillers = passingOptionsByCard.filter(entry => !usedCardIds.has(entry.card.id));
         for (const entry of fillers) {
-          if (selected.length >= 4) break;
+          if (selected.length >= verifierCount) break;
           selected.push({ card: entry.card, criterion: entry.passingOptions[0] });
           usedCardIds.add(entry.card.id);
         }
@@ -522,7 +568,7 @@ function findUniqueActiveCriteria(code) {
       possibleCodes = chosen.filtered;
     }
 
-    if (selected.length === 4 && possibleCodes.length === 1) return selected;
+    if (selected.length === verifierCount && possibleCodes.length === 1) return selected;
   }
   return null;
 }
@@ -553,20 +599,22 @@ function renderVerifierOptions() {
 
 function newGame() {
   let puzzle = null;
-  for (let attempt = 0; attempt < 80; attempt++) {
+  const difficulty = getSelectedDifficulty();
+  const verifierCount = getSelectedVerifierCount();
+  for (let attempt = 0; attempt < 120; attempt++) {
     const code = [
       Math.floor(Math.random() * 5) + 1,
       Math.floor(Math.random() * 5) + 1,
       Math.floor(Math.random() * 5) + 1
     ];
-    const activeCriteria = findUniqueActiveCriteria(code);
-    if (activeCriteria && activeCriteria.length === 4) {
+    const activeCriteria = findUniqueActiveCriteria(code, difficulty.maxCardId, verifierCount);
+    if (activeCriteria && activeCriteria.length === verifierCount) {
       puzzle = { code, activeCriteria };
       break;
     }
   }
   if (!puzzle) {
-    setMessage("問題を生成できませんでした。もう一度お試しください。", "error");
+    setMessage("この難易度と判定機の数では問題を生成できませんでした。難易度または判定機の数を変更して、もう一度お試しください。", "error");
     return;
   }
 
@@ -585,13 +633,14 @@ function newGame() {
   roundFinished = false;
   gameFinished = false;
 
+  renderVerifierCards(verifierCount);
   renderVerifierOptions();
   ["digitA", "digitB", "digitC"].forEach(id => {
     const input = document.getElementById(id);
     if (input) { input.value = "1"; input.disabled = false; }
   });
   resetVerifierResults();
-  setMessage("新しい問題を生成しました。提案コードを決め、検証機に質問してください。");
+  setMessage("「" + difficulty.label + "」モード・判定機" + verifierCount + "基で新しい問題を生成しました（使用カード：1～" + difficulty.maxCardId + "）。提案コードを決め、判定機に質問してください。");
   renderHistory();
   renderCandidateCount();
   updateControls();
@@ -621,13 +670,26 @@ function endRoundAndNext() {
   updateControls();
 }
 
-document.querySelectorAll("[data-verifier]").forEach(button => {
-  button.addEventListener("click", () => testVerifier(Number(button.dataset.verifier)));
-});
+const verifierGrid = document.getElementById("verifierGrid");
+if (verifierGrid) {
+  verifierGrid.addEventListener("click", event => {
+    const button = event.target.closest("[data-verifier]");
+    if (button) testVerifier(Number(button.dataset.verifier));
+  });
+}
 const submitButton = document.getElementById("submitGuess");
 if (submitButton) submitButton.addEventListener("click", submitGuess);
 const newGameButton = document.getElementById("newGame");
 if (newGameButton) newGameButton.addEventListener("click", newGame);
+const difficultySelector = document.getElementById("difficulty");
+if (difficultySelector) difficultySelector.addEventListener("change", () => {
+  const difficulty = getSelectedDifficulty();
+  setMessage("難易度を「" + difficulty.label + "」に変更しました。変更を反映するには「新しい問題を開始」を押してください。");
+});
+const verifierCountSelector = document.getElementById("verifierCount");
+if (verifierCountSelector) verifierCountSelector.addEventListener("change", () => {
+  setMessage("判定機の数を「" + getSelectedVerifierCount() + "基」に変更しました。変更を反映するには「新しい問題を開始」を押してください。");
+});
 const nextRoundButton = document.getElementById("nextRound");
 if (nextRoundButton) nextRoundButton.addEventListener("click", endRoundAndNext);
 
