@@ -1,634 +1,393 @@
 "use strict";
 
-/* =========================================
-   Turing Machine風ゲーム：判定エンジン
-   数字は1～5、暗号は3桁
-========================================= */
-
 const TuringEngine = (() => {
-  // すべての暗号125通りを作る
   function generateAllCodes() {
     const codes = [];
-
-    for (let a = 1; a <= 5; a++) {
-      for (let b = 1; b <= 5; b++) {
-        for (let c = 1; c <= 5; c++) {
-          codes.push([a, b, c]);
-        }
-      }
-    }
-
+    for (let a = 1; a <= 5; a++) for (let b = 1; b <= 5; b++) for (let c = 1; c <= 5; c++) codes.push([a, b, c]);
     return codes;
   }
-
-  // 暗号が正しい形式か確認する
   function isValidCode(code) {
-    return (
-      Array.isArray(code) &&
-      code.length === 3 &&
-      code.every(
-        n => Number.isInteger(n) && n >= 1 && n <= 5
-      )
-    );
+    return Array.isArray(code) && code.length === 3 && code.every(n => Number.isInteger(n) && n >= 1 && n <= 5);
   }
-
-  // 数字の位置を取得する
-  // 0 = 三角、1 = 四角、2 = 丸
   function getDigit(code, position) {
-    if (!isValidCode(code)) {
-      throw new Error("暗号は1～5の数字を3つ指定してください。");
-    }
-
-    if (![0, 1, 2].includes(position)) {
-      throw new Error("数字の位置は0、1、2で指定してください。");
-    }
-
+    if (!isValidCode(code)) throw new Error("暗号は1～5の数字を3つ指定してください。");
+    if (![0, 1, 2].includes(position)) throw new Error("数字の位置は0、1、2で指定してください。");
     return code[position];
   }
-
-  // 条件を判定する
   function evaluate(code, criterion) {
-  if (!isValidCode(code)) {
-    throw new Error("暗号の形式が正しくありません。");
-  }
-
-  switch (criterion.operator) {
-    case "equalTo":
-      return getDigit(code, criterion.position) === criterion.value;
-
-    case "greaterThan":
-      return getDigit(code, criterion.position) > criterion.value;
-
-    case "lessThan":
-      return getDigit(code, criterion.position) < criterion.value;
-
-    case "even":
-      return getDigit(code, criterion.position) % 2 === 0;
-
-    case "odd":
-      return getDigit(code, criterion.position) % 2 === 1;
-
-    case "sumGreaterThan":
-      return code.reduce((sum, n) => sum + n, 0) > criterion.value;
-
-    case "sumLessThan":
-      return code.reduce((sum, n) => sum + n, 0) < criterion.value;
-
-    case "allDifferent":
-      return new Set(code).size === 3;
-
-    case "hasDuplicates":
-      return new Set(code).size < 3;
-
-    default:
-      throw new Error("未対応の条件です：" + criterion.operator);
-  }
-}
-
-  // 1つの検証機が持つ条件候補を作る
-  function createVerifier(id, options) {
-    if (!Array.isArray(options) || options.length < 2) {
-      throw new Error("検証機には複数の条件候補が必要です。");
+    if (!isValidCode(code)) throw new Error("暗号の形式が正しくありません。");
+    switch (criterion.operator) {
+      case "equalTo": return getDigit(code, criterion.position) === criterion.value;
+      case "greaterThan": return getDigit(code, criterion.position) > criterion.value;
+      case "lessThan": return getDigit(code, criterion.position) < criterion.value;
+      case "even": return getDigit(code, criterion.position) % 2 === 0;
+      case "odd": return getDigit(code, criterion.position) % 2 === 1;
+      case "sumGreaterThan": return code.reduce((sum, n) => sum + n, 0) > criterion.value;
+      case "sumLessThan": return code.reduce((sum, n) => sum + n, 0) < criterion.value;
+      case "allDifferent": return new Set(code).size === 3;
+      case "hasDuplicates": return new Set(code).size < 3;
+      default: throw new Error("未対応の条件です：" + criterion.operator);
     }
-
-    return {
-      id,
-      options,
-      activeIndex: Math.floor(Math.random() * options.length)
-    };
   }
-
-  // 検証機に暗号を提示して合否を取得する
+  function createVerifier(id, options) {
+    if (!Array.isArray(options) || options.length < 2) throw new Error("検証機には複数の条件候補が必要です。");
+    return { id, options, activeIndex: Math.floor(Math.random() * options.length) };
+  }
   function askVerifier(code, verifier) {
-    const criterion = verifier.options[verifier.activeIndex];
-
-    return evaluate(code, criterion);
+    return evaluate(code, verifier.options[verifier.activeIndex]);
   }
-
-  // 観察結果と矛盾する条件候補を除外する
-  // observations の各要素：
-  // { code: [1, 2, 3], passed: true }
-  function filterCriteria(options, observations) {
-    return options.filter(criterion =>
-      observations.every(observation =>
+  function filterCriteria(options, observationsForVerifier) {
+    return options.filter(criterion => observationsForVerifier.every(observation =>
+      evaluate(observation.code, criterion) === observation.passed
+    ));
+  }
+  function filterCandidates(codes, observations, verifierOptions) {
+    return codes.filter(code => verifierOptions.every(verifier => {
+      const related = observations.filter(observation => observation.verifierId === verifier.id);
+      if (related.length === 0) return true;
+      const possibleCriteria = verifier.options.filter(criterion => related.every(observation =>
         evaluate(observation.code, criterion) === observation.passed
-      )
-    );
+      ));
+      return possibleCriteria.some(criterion => evaluate(code, criterion));
+    }));
   }
-
-  // 観察結果に合わない暗号を候補から除外する
-  // observations の各要素：
-  // { verifierId: "A", code: [1, 2, 3], passed: true }
-  //
-  // verifierOptions の各要素：
-  // { id: "A", options: [...] } 
-function filterCandidates(codes, observations, verifierOptions) {
-  return codes.filter(code =>
-    verifierOptions.every(verifier => {
-      const related = observations.filter(
-        observation => observation.verifierId === verifier.id
-      );
-
-if (related.length === 0) {
-  return true;
-}
-
-      // 検証履歴と矛盾しない条件候補だけを残す
-      const possibleCriteria = verifier.options.filter(criterion =>
-        related.every(observation =>
-          evaluate(observation.code, criterion) === observation.passed
-        )
-      );
-
-      // 残った条件候補のうち、少なくとも1つを
-      // この暗号が満たしていれば候補として残す
-      return possibleCriteria.some(criterion =>
-        evaluate(code, criterion)
-      );
-    })
-  );
-}
-
-  return {
-    generateAllCodes,
-    isValidCode,
-    getDigit,
-    evaluate,
-    createVerifier,
-    askVerifier,
-    filterCriteria,
-    filterCandidates
-  };
+  return { generateAllCodes, isValidCode, getDigit, evaluate, createVerifier, askVerifier, filterCriteria, filterCandidates };
 })();
 
-
-/* =========================================
-   条件データ
-========================================= */
-
 const CRITERIA = [
-  {
-    name: "三角の数字は1",
-    position: 0,
-    operator: "equalTo",
-    value: 1
-  },
-  {
-    name: "三角の数字は3",
-    position: 0,
-    operator: "equalTo",
-    value: 3
-  },
-  {
-    name: "三角の数字は5",
-    position: 0,
-    operator: "equalTo",
-    value: 5
-  },
-  {
-    name: "三角の数字は3より大きい",
-    position: 0,
-    operator: "greaterThan",
-    value: 3
-  },
-  {
-    name: "三角の数字は3より小さい",
-    position: 0,
-    operator: "lessThan",
-    value: 3
-  },
-  {
-    name: "三角の数字は偶数",
-    position: 0,
-    operator: "even"
-  },
-  {
-    name: "三角の数字は奇数",
-    position: 0,
-    operator: "odd"
-  },
-  {
-    name: "四角の数字は2",
-    position: 1,
-    operator: "equalTo",
-    value: 2
-  },
-  {
-    name: "四角の数字は4",
-    position: 1,
-    operator: "equalTo",
-    value: 4
-  },
-  {
-    name: "四角の数字は3より大きい",
-    position: 1,
-    operator: "greaterThan",
-    value: 3
-  },
-  {
-    name: "四角の数字は偶数",
-    position: 1,
-    operator: "even"
-  },
-  {
-    name: "丸の数字は奇数",
-    position: 2,
-    operator: "odd"
-  },
-  {
-    name: "3つの数字の合計は9より大きい",
-    operator: "sumGreaterThan",
-    value: 9
-  },
-  {
-    name: "3つの数字の合計は8より小さい",
-    operator: "sumLessThan",
-    value: 8
-  },
-  {
-    name: "3つの数字はすべて異なる",
-    operator: "allDifferent"
-  },
-{
-  name: "同じ数字が含まれている",
-  operator: "hasDuplicates"
-},
-{
-  name: "四角の数字は1",
-  position: 1,
-  operator: "equalTo",
-  value: 1
-},
-{
-  name: "四角の数字は3",
-  position: 1,
-  operator: "equalTo",
-  value: 3
-},
-{
-  name: "四角の数字は5",
-  position: 1,
-  operator: "equalTo",
-  value: 5
-},
-{
-  name: "丸の数字は1",
-  position: 2,
-  operator: "equalTo",
-  value: 1
-},
-{
-  name: "丸の数字は2",
-  position: 2,
-  operator: "equalTo",
-  value: 2
-},
-{
-  name: "丸の数字は3",
-  position: 2,
-  operator: "equalTo",
-  value: 3
-},
-{
-  name: "丸の数字は4",
-  position: 2,
-  operator: "equalTo",
-  value: 4
-},
-{
-  name: "丸の数字は5",
-  position: 2,
-  operator: "equalTo",
-  value: 5
-}
+  {name:"三角の数字は1",position:0,operator:"equalTo",value:1},
+  {name:"三角の数字は3",position:0,operator:"equalTo",value:3},
+  {name:"三角の数字は5",position:0,operator:"equalTo",value:5},
+  {name:"三角の数字は3より大きい",position:0,operator:"greaterThan",value:3},
+  {name:"三角の数字は3より小さい",position:0,operator:"lessThan",value:3},
+  {name:"三角の数字は偶数",position:0,operator:"even"},
+  {name:"三角の数字は奇数",position:0,operator:"odd"},
+  {name:"四角の数字は2",position:1,operator:"equalTo",value:2},
+  {name:"四角の数字は4",position:1,operator:"equalTo",value:4},
+  {name:"四角の数字は3より大きい",position:1,operator:"greaterThan",value:3},
+  {name:"四角の数字は偶数",position:1,operator:"even"},
+  {name:"丸の数字は奇数",position:2,operator:"odd"},
+  {name:"3つの数字の合計は9より大きい",operator:"sumGreaterThan",value:9},
+  {name:"3つの数字の合計は8より小さい",operator:"sumLessThan",value:8},
+  {name:"3つの数字はすべて異なる",operator:"allDifferent"},
+  {name:"同じ数字が含まれている",operator:"hasDuplicates"},
+  {name:"四角の数字は1",position:1,operator:"equalTo",value:1},
+  {name:"四角の数字は3",position:1,operator:"equalTo",value:3},
+  {name:"四角の数字は5",position:1,operator:"equalTo",value:5},
+  {name:"丸の数字は1",position:2,operator:"equalTo",value:1},
+  {name:"丸の数字は2",position:2,operator:"equalTo",value:2},
+  {name:"丸の数字は3",position:2,operator:"equalTo",value:3},
+  {name:"丸の数字は4",position:2,operator:"equalTo",value:4},
+  {name:"丸の数字は5",position:2,operator:"equalTo",value:5}
 ];
-
-
-/* =========================================
-   既存画面との接続
-========================================= */
 
 let secretCode = [];
 let verifiers = [];
 let observations = [];
 let historyEntries = [];
+let currentRound = 1;
+let questionsThisRound = 0;
+let totalQuestions = 0;
+let roundProposal = null;
+let askedVerifiersThisRound = new Set();
+let roundFinished = false;
+let gameFinished = false;
+const MAX_QUESTIONS_PER_ROUND = 3;
 
 function getProposal() {
   const a = document.getElementById("digitA");
   const b = document.getElementById("digitB");
   const c = document.getElementById("digitC");
-
   if (!a || !b || !c) return null;
-
   return [Number(a.value), Number(b.value), Number(c.value)];
 }
+function validProposal(code) { return TuringEngine.isValidCode(code); }
 
-function validProposal(code) {
-  return TuringEngine.isValidCode(code);
-}
-
-function setMessage(message) {
+function setMessage(message, kind = "") {
   const element = document.getElementById("message");
-  if (element) element.textContent = message;
+  if (!element) return;
+  element.textContent = message;
+  element.classList.remove("error", "success");
+  if (kind) element.classList.add(kind);
 }
-
 function addLog(message) {
   historyEntries.unshift(message);
   renderHistory();
 }
-
 function renderHistory() {
   const history = document.getElementById("history");
   if (!history) return;
-
   history.replaceChildren();
-
   if (historyEntries.length === 0) {
-    history.textContent = "まだ検証結果はありません。";
+    history.textContent = "まだ解析記録はありません。";
     return;
   }
-
   historyEntries.forEach(message => {
     const item = document.createElement("p");
+    item.className = "history-entry";
     item.textContent = message;
     history.appendChild(item);
   });
 }
-
-// 各検証機について、現在残っている条件候補を調べる
-function getRemainingCriteria(verifier) {
-  const related = observations.filter(
-    observation => observation.verifierId === verifier.id
-  );
-
-  return TuringEngine.filterCriteria(verifier.options, related);
+function renderRoundStatus() {
+  const roundElement = document.getElementById("roundStatus");
+  const questionElement = document.getElementById("questionStatus");
+  const totalElement = document.getElementById("totalQuestionStatus");
+  if (roundElement) roundElement.textContent = gameFinished ? "SESSION COMPLETE" : "ROUND " + currentRound;
+  if (questionElement) questionElement.textContent = "このラウンドの質問：" + questionsThisRound + " / " + MAX_QUESTIONS_PER_ROUND;
+  if (totalElement) totalElement.textContent = "総質問数：" + totalQuestions;
 }
-
-// 現在の暗号候補数を表示する
+function updateControls() {
+  const inputsLocked = roundProposal !== null || gameFinished;
+  ["digitA", "digitB", "digitC"].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.disabled = inputsLocked;
+  });
+  document.querySelectorAll("[data-verifier]").forEach(button => {
+    const index = Number(button.dataset.verifier);
+    const verifier = verifiers[index];
+    const alreadyAsked = verifier && askedVerifiersThisRound.has(verifier.id);
+    button.disabled = gameFinished || roundFinished ||
+      questionsThisRound >= MAX_QUESTIONS_PER_ROUND || Boolean(alreadyAsked);
+  });
+  const nextRoundButton = document.getElementById("nextRound");
+  if (nextRoundButton) {
+    nextRoundButton.disabled = gameFinished || questionsThisRound === 0;
+    nextRoundButton.textContent = roundFinished ? "次のラウンドへ" : "このラウンドを終了して次へ";
+  }
+  const submitButton = document.getElementById("submitGuess");
+  if (submitButton) submitButton.disabled = gameFinished;
+  renderRoundStatus();
+}
 function renderCandidateCount() {
-  const candidates = TuringEngine.filterCandidates(
-    TuringEngine.generateAllCodes(),
-    observations,
-    verifiers
-  );
-
+  const candidates = TuringEngine.filterCandidates(TuringEngine.generateAllCodes(), observations, verifiers);
   let panel = document.getElementById("candidateCount");
-
   if (!panel) {
     panel = document.createElement("p");
     panel.id = "candidateCount";
-
     const history = document.getElementById("history");
-    if (history && history.parentElement) {
-      history.parentElement.appendChild(panel);
-    }
+    if (history && history.parentElement) history.parentElement.appendChild(panel);
   }
-
-  panel.textContent =
-    "現在の暗号候補：" + candidates.length + "通り";
+  panel.textContent = "現在の暗号候補：" + candidates.length + "通り";
+}
+function resetVerifierResults() {
+  [0, 1, 2, 3].forEach(index => {
+    const result = document.getElementById("result" + index);
+    if (result) {
+      result.textContent = "未検証";
+      result.classList.remove("pass", "fail");
+    }
+  });
 }
 
 function testVerifier(index) {
+  if (gameFinished) {
+    setMessage("このゲームは終了しています。「新しい問題を開始」してください。");
+    return;
+  }
+  if (roundFinished || questionsThisRound >= MAX_QUESTIONS_PER_ROUND) {
+    setMessage("このラウンドの質問は終了しました。次のラウンドへ進んでください。");
+    return;
+  }
   const code = getProposal();
-
   if (!validProposal(code)) {
-    setMessage("各数字に1～5を入力してください。");
+    setMessage("各数字に1～5を入力してください。", "error");
     return;
   }
-
   const verifier = verifiers[index];
-
   if (!verifier) {
-    setMessage("検証機が見つかりません。");
+    setMessage("検証機が見つかりません。", "error");
+    return;
+  }
+  if (askedVerifiersThisRound.has(verifier.id)) {
+    setMessage("このラウンドでは、同じ検証機に2回質問できません。別の検証機を選んでください。");
+    return;
+  }
+  if (roundProposal === null) {
+    roundProposal = [...code];
+  } else if (code.some((digit, i) => digit !== roundProposal[i])) {
+    setMessage("同じラウンド中は提案コードを変更できません。", "error");
     return;
   }
 
-  const passed = TuringEngine.askVerifier(code, verifier);
-
-  observations.push({
-    verifierId: verifier.id,
-    code: [...code],
-    passed
-  });
+  const passed = TuringEngine.askVerifier(roundProposal, verifier);
+  observations.push({ round: currentRound, verifierId: verifier.id, code: [...roundProposal], passed });
+  askedVerifiersThisRound.add(verifier.id);
+  questionsThisRound += 1;
+  totalQuestions += 1;
 
   const result = document.getElementById("result" + index);
-
   if (result) {
     result.textContent = passed ? "PASS ✓" : "FAIL ✕";
     result.classList.remove("pass", "fail");
     result.classList.add(passed ? "pass" : "fail");
   }
+  addLog("ラウンド " + currentRound + " ／ コード " + roundProposal.join("") +
+    " ／ 検証機 " + verifier.id + "：" + (passed ? "合格" : "不合格"));
 
-  const label = String.fromCharCode(65 + index);
-  const codeText = code.join("");
-
-  addLog(
-    "コード " + codeText +
-    " ／ 検証機 " + label +
-    "：" + (passed ? "合格" : "不合格")
-  );
-
+  if (questionsThisRound >= MAX_QUESTIONS_PER_ROUND) {
+    roundFinished = true;
+    setMessage("このラウンドの質問上限（3回）に達しました。推理するか、次のラウンドへ進んでください。");
+  } else {
+    setMessage("検証が完了しました。あと " + (MAX_QUESTIONS_PER_ROUND - questionsThisRound) + " 回まで質問できます。");
+  }
   renderCandidateCount();
-
-  setMessage(
-    "検証が完了しました。結果を手がかりに暗号を推理しましょう。"
-  );
+  updateControls();
 }
 
 function submitGuess() {
-  const guess = getProposal();
-
-  if (!validProposal(guess)) {
-    setMessage("各数字に1～5を入力してください。");
+  if (gameFinished) {
+    setMessage("このゲームは終了しています。「新しい問題を開始」してください。");
     return;
   }
-
+  if (totalQuestions === 0) {
+    setMessage("まず検証機に質問し、手がかりを集めてください。", "error");
+    return;
+  }
+  const guess = getProposal();
+  if (!validProposal(guess)) {
+    setMessage("各数字に1～5を入力してください。", "error");
+    return;
+  }
   if (guess.every((digit, index) => digit === secretCode[index])) {
-    setMessage("正解です！暗号を特定しました！");
-    addLog("暗号を正しく特定しました。");
+    gameFinished = true;
+    setMessage("正解です！ " + currentRound + "ラウンド・総質問数" + totalQuestions + "回で暗号を特定しました。", "success");
+    addLog("正解：" + guess.join("") + " ／ " + currentRound + "ラウンド・総質問数" + totalQuestions + "回");
+    updateControls();
   } else {
-    setMessage("不正解です。検証結果をもう一度確認しましょう。");
-    addLog("提出したコード " + guess.join("") + " は不正解でした。");
+    setMessage("不正解です。検証履歴を見直して、次のラウンドで推理を続けましょう。", "error");
+    addLog("最終回答 " + guess.join("") + " は不正解でした。");
   }
 }
 
-
-/* =========================================
-   一意に解ける問題を生成するための処理
-========================================= */
-
-// 指定したコードを正解とする、3つの条件を探す
+// 4つの条件を同時に満たすコードが、正解1通りになる組み合わせを探す。
 function findUniqueActiveCriteria(code) {
   const allCodes = TuringEngine.generateAllCodes();
+  const matchingCriteria = CRITERIA.filter(criterion => TuringEngine.evaluate(code, criterion));
 
-  // 正解コードが満たしている条件だけを集める
-  const matchingCriteria = CRITERIA.filter(criterion =>
-    TuringEngine.evaluate(code, criterion)
-  );
-
-  // 条件を3つずつ組み合わせて調べる
-  for (let i = 0; i < matchingCriteria.length - 2; i++) {
-    for (let j = i + 1; j < matchingCriteria.length - 1; j++) {
-      for (let k = j + 1; k < matchingCriteria.length; k++) {
-        const selected = [
-          matchingCriteria[i],
-          matchingCriteria[j],
-          matchingCriteria[k]
-        ];
-
-        // 3つの条件をすべて満たすコードを探す
-        const solutions = allCodes.filter(candidate =>
-          selected.every(criterion =>
-            TuringEngine.evaluate(candidate, criterion)
-          )
-        );
-
-        // 解が1通りで、それが指定したコードなら採用
-        if (
-          solutions.length === 1 &&
-          solutions[0].every(
-            (digit, index) => digit === code[index]
-          )
-        ) {
-          return selected;
-        }
-      }
+  function search(startIndex, selected, possibleCodes) {
+    if (selected.length === 4) return possibleCodes.length === 1 ? selected : null;
+    const needed = 4 - selected.length;
+    for (let i = startIndex; i <= matchingCriteria.length - needed; i++) {
+      const criterion = matchingCriteria[i];
+      const filteredCodes = possibleCodes.filter(candidate => TuringEngine.evaluate(candidate, criterion));
+      const secretStillPossible = filteredCodes.some(candidate =>
+        candidate.every((digit, index) => digit === code[index])
+      );
+      if (!secretStillPossible) continue;
+      const result = search(i + 1, [...selected, criterion], filteredCodes);
+      if (result) return result;
     }
+    return null;
   }
-
-  return null;
+  return search(0, [], allCodes);
 }
 
-// 条件候補の中に、実際に使う条件を混ぜる
 function createVerifierWithActiveCriterion(id, activeCriterion) {
-  const otherCriteria = CRITERIA.filter(
-    criterion => criterion !== activeCriterion
-  );
-
-  // 本当の条件以外から2つ選ぶ
-  const distractors = [...otherCriteria]
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 2);
-
-  // 3候補の順番をランダムにする
-  const options = [activeCriterion, ...distractors]
-    .sort(() => Math.random() - 0.5);
-
+  const otherCriteria = CRITERIA.filter(criterion => criterion !== activeCriterion);
+  const distractors = [...otherCriteria].sort(() => Math.random() - 0.5).slice(0, 2);
+  const options = [activeCriterion, ...distractors].sort(() => Math.random() - 0.5);
   const verifier = TuringEngine.createVerifier(id, options);
-
-  // 実際に使う条件の位置を正しく設定する
   verifier.activeIndex = options.indexOf(activeCriterion);
-
   return verifier;
 }
-
 function renderVerifierOptions() {
   verifiers.forEach((verifier, index) => {
-    const container = document.getElementById(
-      "criteriaOptions" + index
-    );
-
+    const container = document.getElementById("criteriaOptions" + index);
     if (!container) return;
-
     container.replaceChildren();
-
     verifier.options.forEach((criterion, optionIndex) => {
       const item = document.createElement("div");
       item.className = "criteria-option";
-
       const number = document.createElement("span");
       number.className = "criteria-number";
       number.textContent = (optionIndex + 1) + ".";
-
       const name = document.createElement("span");
       name.textContent = criterion.name;
-
       item.append(number, name);
       container.appendChild(item);
     });
   });
 }
-function newGame() {
-  // 一意に解ける正解コードと条件を探す
-  let puzzle = null;
 
+function newGame() {
+  let puzzle = null;
   for (let attempt = 0; attempt < 1000; attempt++) {
     const code = [
       Math.floor(Math.random() * 5) + 1,
       Math.floor(Math.random() * 5) + 1,
       Math.floor(Math.random() * 5) + 1
     ];
-
     const activeCriteria = findUniqueActiveCriteria(code);
-
-    if (activeCriteria) {
+    if (activeCriteria && activeCriteria.length === 4) {
       puzzle = { code, activeCriteria };
       break;
     }
   }
-
-  // 通常はここに到達する前に問題が見つかる
   if (!puzzle) {
-    setMessage("問題を生成できませんでした。もう一度お試しください。");
+    setMessage("問題を生成できませんでした。もう一度お試しください。", "error");
     return;
   }
 
   secretCode = [...puzzle.code];
-
-  // 各検証機に、本当の条件を1つずつ割り当てる
   verifiers = puzzle.activeCriteria.map((criterion, index) =>
-    createVerifierWithActiveCriterion(
-      String.fromCharCode(65 + index),
-      criterion
-    )
+    createVerifierWithActiveCriterion(String.fromCharCode(65 + index), criterion)
   );
 
-  // 画面に3つずつの条件候補を表示する
-  renderVerifierOptions();
-
-  // 検証履歴をリセット
   observations = [];
   historyEntries = [];
+  currentRound = 1;
+  questionsThisRound = 0;
+  totalQuestions = 0;
+  roundProposal = null;
+  askedVerifiersThisRound = new Set();
+  roundFinished = false;
+  gameFinished = false;
+
+  renderVerifierOptions();
+  ["digitA", "digitB", "digitC"].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) { input.value = "1"; input.disabled = false; }
+  });
+  resetVerifierResults();
+  setMessage("新しい問題を生成しました。提案コードを決め、検証機に質問してください。");
+  renderHistory();
+  renderCandidateCount();
+  updateControls();
+}
+
+function endRoundAndNext() {
+  if (gameFinished) return;
+  if (questionsThisRound === 0) {
+    setMessage("次のラウンドへ進む前に、少なくとも1回は検証してください。", "error");
+    return;
+  }
+
+  addLog("ラウンド " + currentRound + " 終了 ／ このラウンドの質問数：" + questionsThisRound);
+  currentRound += 1;
+  questionsThisRound = 0;
+  roundProposal = null;
+  askedVerifiersThisRound = new Set();
+  roundFinished = false;
 
   ["digitA", "digitB", "digitC"].forEach(id => {
     const input = document.getElementById(id);
-    if (input) input.value = "1";
+    if (input) { input.value = "1"; input.disabled = false; }
   });
-
-  [0, 1, 2].forEach(index => {
-    const result = document.getElementById("result" + index);
-
-    if (result) {
-      result.textContent = "未検証";
-      result.classList.remove("pass", "fail");
-    }
-  });
-
-  setMessage(
-    "新しい問題を生成しました。条件候補と検証結果から暗号を推理してください。"
-  );
-
-  renderHistory();
+  resetVerifierResults();
+  setMessage("ラウンド " + currentRound + " です。新しい提案コードを選んでください。過去の検証履歴は残っています。");
   renderCandidateCount();
+  updateControls();
 }
 
-// 画面上のボタンに処理を登録する
 document.querySelectorAll("[data-verifier]").forEach(button => {
-  button.addEventListener("click", () => {
-    const index = Number(button.dataset.verifier);
-    testVerifier(index);
-  });
+  button.addEventListener("click", () => testVerifier(Number(button.dataset.verifier)));
 });
-
 const submitButton = document.getElementById("submitGuess");
-if (submitButton) {
-  submitButton.addEventListener("click", submitGuess);
-}
-
+if (submitButton) submitButton.addEventListener("click", submitGuess);
 const newGameButton = document.getElementById("newGame");
-if (newGameButton) {
-  newGameButton.addEventListener("click", newGame);
-}
+if (newGameButton) newGameButton.addEventListener("click", newGame);
+const nextRoundButton = document.getElementById("nextRound");
+if (nextRoundButton) nextRoundButton.addEventListener("click", endRoundAndNext);
 
-// ゲーム開始
 newGame();
