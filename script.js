@@ -545,6 +545,18 @@ const FIXED_PROBLEMS = [
       { cardId: 9, optionNumber: 1 },
       { cardId: 10, optionNumber: 1 }
     ]
+  },
+  {
+    id: "002",
+    title: "大小関係の暗号",
+    difficulty: "advanced",
+    secretCode: [1, 2, 3],
+    verifiers: [
+      { cardId: 1, optionNumber: 1 },
+      { cardId: 3, optionNumber: 1 },
+      { cardId: 22, optionNumber: 1 },
+      { cardId: 29, optionNumber: 3 }
+    ]
   }
 ];
 
