@@ -24,16 +24,259 @@ footer{padding:12px 0;color:#6f8998;text-align:center;font-size:9px;letter-spaci
 @media(max-width:760px){.verifier-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:420px){.terminal{width:calc(100% - 20px);padding-top:12px}.topbar{align-items:flex-start}.brand{gap:8px}.brand-icon{width:38px;height:38px}.status{font-size:8px;padding-top:4px}.panel{padding:14px}.code-slots{gap:6px}.slot{padding:9px 5px}.slot span{font-size:9px;letter-spacing:0}.slot select{font-size:23px}.verifier{padding:10px 5px}.verifier-top{font-size:9px}.orb{width:38px;height:38px;font-size:18px}.criteria-panel{padding:8px}.criteria-option{padding:7px;font-size:.78rem}.round-status{align-items:flex-start;flex-direction:column}}
 
-/* Difficulty selector */
-.difficulty-picker{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;margin-top:16px;padding:12px;border:1px solid var(--line);border-radius:8px;background:#091521}
-.difficulty-picker label{color:var(--cyan);font-size:12px;font-weight:800}
-.difficulty-picker select{width:100%;min-height:46px;padding:9px 12px;border:1px solid #355266;border-radius:6px;background:var(--panel-light);color:var(--text);font-size:15px}
-.difficulty-picker .small{margin:0}
+/* ========================================
+   CONFIGURATION / 設定パネル
+   ======================================== */
 
+.settings-panel {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(105, 211, 232, 0.22);
+  border-radius: 10px;
+  background: rgba(5, 15, 25, 0.62);
+  text-align: left;
+}
 
-/* Difficulty and verifier-count settings */
-.settings-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
-.settings-picker .difficulty-picker{margin-top:0}
-.settings-help{grid-column:1/-1;margin:0}
-.verifier-grid{grid-template-columns:repeat(auto-fit,minmax(205px,1fr))}
-@media(max-width:520px){.settings-picker{grid-template-columns:minmax(0,1fr)}.settings-help{grid-column:auto}}
+.settings-panel .settings-title {
+  margin: 0 0 18px;
+  color: #55e6d0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+}
+
+.settings-panel .settings-title span,
+.settings-label span {
+  color: #8fa8b8;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.settings-panel .settings-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 9px;
+  color: #d7e5ed;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.settings-panel .settings-label-icon {
+  color: #55e6d0;
+  font-size: 1rem;
+}
+
+/* ゲームモードの2枚のカード */
+
+.game-mode-section {
+  margin-bottom: 18px;
+}
+
+.game-mode-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mode-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 13px 10px;
+  border: 1px solid #314451;
+  border-radius: 8px;
+  background: rgba(13, 27, 39, 0.8);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.mode-card:hover {
+  border-color: rgba(105, 211, 232, 0.65);
+}
+
+.mode-card.selected {
+  border-color: #55e6d0;
+  background: rgba(18, 49, 61, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(105, 211, 232, 0.12);
+}
+
+.mode-card input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.mode-card:focus-within {
+  outline: 2px solid #55e6d0;
+  outline-offset: 3px;
+}
+
+.mode-card-icon {
+  display: grid;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 6px;
+  background: rgba(143, 168, 184, 0.1);
+  color: #8fa8b8;
+  font-size: 1.35rem;
+}
+
+.mode-card.selected .mode-card-icon {
+  background: rgba(105, 211, 232, 0.12);
+  color: #55e6d0;
+}
+
+.mode-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mode-card-text strong {
+  color: #d7e5ed;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.mode-card-text small {
+  color: #8fa8b8;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+}
+
+.mode-card.selected .mode-card-text small {
+  color: #55e6d0;
+}
+
+/* JavaScriptとの互換性を保つ隠し選択欄 */
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* 問題番号の横長セレクター */
+
+.problem-number-section {
+  margin-bottom: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(105, 211, 232, 0.17);
+}
+
+.settings-panel select {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 34px 10px 12px;
+  border: 1px solid #314451;
+  border-radius: 7px;
+  background-color: #0d1b27;
+  color: #d7e5ed;
+  font: inherit;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.settings-panel select:focus {
+  border-color: #55e6d0;
+  outline: 2px solid rgba(105, 211, 232, 0.18);
+  outline-offset: 1px;
+}
+
+.settings-panel select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.settings-panel select option {
+  background: #0d1b27;
+  color: #d7e5ed;
+}
+
+/* 難易度と判定機の数を2列に */
+
+.settings-subgrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.setting-field {
+  min-width: 0;
+}
+
+.setting-field .settings-label {
+  min-height: 24px;
+  font-size: 0.78rem;
+}
+
+.settings-panel .settings-help {
+  margin: 16px 0 0;
+  color: #8fa8b8;
+  font-size: 0.74rem;
+  line-height: 1.6;
+}
+
+/* スマートフォン */
+
+@media (max-width: 420px) {
+  .settings-panel {
+    padding: 12px;
+  }
+
+  .game-mode-cards {
+    gap: 7px;
+  }
+
+  .mode-card {
+    gap: 7px;
+    padding: 11px 7px;
+  }
+
+  .mode-card-icon {
+    flex-basis: 27px;
+    width: 27px;
+    height: 27px;
+    font-size: 1.15rem;
+  }
+
+  .mode-card-text strong {
+    font-size: 0.76rem;
+  }
+
+  .settings-subgrid {
+    gap: 9px;
+  }
+
+  .setting-field .settings-label {
+    font-size: 0.73rem;
+  }
+
+  .settings-panel select {
+    padding-right: 24px;
+    padding-left: 8px;
+    font-size: 0.77rem;
+  }
+}
+
