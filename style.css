@@ -280,3 +280,145 @@ footer{padding:12px 0;color:#6f8998;text-align:center;font-size:9px;letter-spaci
   }
 }
 
+/* 最終回答の正誤判定 */
+.final-answer-result {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--cyan);
+  border-radius: 7px;
+  background: #0a1722;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.final-answer-result[hidden] {
+  display: none;
+}
+
+.final-answer-result.success {
+  border-color: var(--yellow);
+  border-left-color: var(--yellow);
+  background: #292718;
+  color: var(--yellow);
+}
+
+.final-answer-result.error {
+  border-color: var(--red);
+  border-left-color: var(--red);
+  background: #391e2a;
+  color: var(--red);
+}
+
+
+/* 最終回答の正誤判定 */
+.final-answer-result {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--cyan);
+  border-radius: 7px;
+  background: #0a1722;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.final-answer-result[hidden] {
+  display: none;
+}
+
+.final-answer-result.success {
+  border-color: var(--yellow);
+  border-left-color: var(--yellow);
+  background: #292718;
+  color: var(--yellow);
+}
+
+.final-answer-result.error {
+  border-color: var(--red);
+  border-left-color: var(--red);
+  background: #391e2a;
+  color: var(--red);
+}
+
+/* 推理メモ */
+.memo-panel {
+  margin-bottom: 24px;
+}
+
+.memo-label {
+  color: var(--cyan);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.memo-description {
+  margin: 10px 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.memo-input {
+  display: block;
+  width: 100%;
+  min-height: 130px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0a1722;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.memo-input::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.memo-input:focus {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.memo-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.memo-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+#clearMemo {
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .memo-footer {
+    align-items: stretch;
+  }
+
+  #clearMemo {
+    width: 100%;
+    min-height: 42px;
+  }
+}
+
