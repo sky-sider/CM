@@ -185,9 +185,41 @@
   </div>
 
   <button id="submitGuess" class="primary-button">CODEを最終回答する</button>
+
+<div id="finalAnswerResult" class="final-answer-result" role="status" aria-live="polite" hidden></div>
+
   <p class="muted small">※ 不正解でも提案コードと検証履歴は維持されます。</p>
 </div>
   </section>
+
+<!-- 推理メモ -->
+<section class="panel memo-panel">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">DEDUCTION NOTES</p>
+      <h2>PERSONAL LOG</h2>
+    </div>
+  </div>
+
+  <p class="memo-description">
+    仮説・気づいたこと・暗号の候補などを自由に記録できます。
+  </p>
+
+  <textarea
+    id="deductionMemo"
+    class="memo-input"
+    placeholder="例：▲は3以下かもしれない。&#10;判定機AとBの結果から、候補は……"
+    rows="5"
+    aria-label="推理メモ"
+  ></textarea>
+
+  <div class="memo-footer">
+    <span class="memo-hint">メモはゲームの判定に影響しません。</span>
+    <button type="button" id="clearMemo" class="secondary-button">
+      メモをクリア
+    </button>
+  </div>
+</section>
 
   <section class="panel">
     <div class="section-heading"><span class="section-number">02</span><h2>VERIFIER ARRAY</h2></div>
