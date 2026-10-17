@@ -541,21 +541,21 @@ const FIXED_PROBLEMS = [
     secretCode: [1, 1, 1],
     verifiers: [
       { cardId: 1, optionNumber: 1 },
-      { cardId: 8, optionNumber: 4 },
-      { cardId: 9, optionNumber: 1 },
-      { cardId: 10, optionNumber: 1 }
+      { cardId: 3, optionNumber: 1 },
+      { cardId: 6, optionNumber: 2 },
+      { cardId: 12, optionNumber: 2 }
     ]
   },
   {
     id: "002",
-    title: "大小関係の暗号",
+    title: "最大の数字の暗号",
     difficulty: "advanced",
-    secretCode: [1, 2, 3],
+    secretCode: [1, 2, 4],
     verifiers: [
       { cardId: 1, optionNumber: 1 },
-      { cardId: 3, optionNumber: 1 },
-      { cardId: 22, optionNumber: 1 },
-      { cardId: 29, optionNumber: 3 }
+      { cardId: 30, optionNumber: 3 },
+      { cardId: 15, optionNumber: 3 },
+      { cardId: 6, optionNumber: 1 }
     ]
   }
 ];
@@ -603,51 +603,147 @@ function renderVerifierCards(count) {
   if (countLabel) countLabel.textContent = "判定機：" + count + "基";
 }
 
+/**
+ * 条件をすべて満たす暗号を列挙する
+ */
+function countMatchingCodes(entries) {
+  return TuringEngine.generateAllCodes().filter(code =>
+    entries.every(entry =>
+      TuringEngine.evaluate(code, entry.criterion)
+    )
+  );
+}
+
+/**
+ * 正解が一意で、どの判定機も必要か検証する
+ */
+function hasUniqueEssentialSolution(secretCode, entries) {
+  if (!TuringEngine.isValidCode(secretCode)) return false;
+  if (!Array.isArray(entries) || entries.length === 0) return false;
+
+  // 正解コードがすべての条件を満たしているか
+  const allPass = entries.every(entry =>
+    TuringEngine.evaluate(secretCode, entry.criterion)
+  );
+
+  if (!allPass) return false;
+
+  // すべての条件を使ったとき、正解が1通りだけか
+  const matchingCodes = countMatchingCodes(entries);
+
+  if (matchingCodes.length !== 1) return false;
+
+  if (
+    matchingCodes[0].some(
+      (digit, index) => digit !== secretCode[index]
+    )
+  ) {
+    return false;
+  }
+
+  // 判定機を1基ずつ取り除き、正解候補が複数に戻るか確認
+  for (let i = 0; i < entries.length; i++) {
+    const remainingEntries = entries.filter(
+      (_, index) => index !== i
+    );
+
+    const remainingCodes = countMatchingCodes(remainingEntries);
+
+    if (remainingCodes.length < 2) {
+      return false;
+    }
+  }
+
+  return true;
+}
 function findUniqueActiveCriteria(code, maxCardId, verifierCount) {
   const allCodes = TuringEngine.generateAllCodes();
-  const passingOptionsByCard = CRITERIA_CARDS.filter(card => card.id <= maxCardId).map(card => ({
-    card,
-    passingOptions: card.options.filter(criterion => TuringEngine.evaluate(code, criterion))
-  })).filter(entry => entry.passingOptions.length > 0);
 
-  for (let attempt = 0; attempt < 180; attempt++) {
+  // 正解コードで合格する条件候補だけを集める
+  const passingOptionsByCard = CRITERIA_CARDS
+    .filter(card => card.id <= maxCardId)
+    .map(card => ({
+      card,
+      passingOptions: card.options.filter(criterion =>
+        TuringEngine.evaluate(code, criterion)
+      )
+    }))
+    .filter(entry => entry.passingOptions.length > 0);
+
+  for (let attempt = 0; attempt < 500; attempt++) {
     let possibleCodes = allCodes;
     const selected = [];
     const usedCardIds = new Set();
 
     while (selected.length < verifierCount) {
-      if (possibleCodes.length === 1) {
-        const fillers = passingOptionsByCard.filter(entry => !usedCardIds.has(entry.card.id));
-        for (const entry of fillers) {
-          if (selected.length >= verifierCount) break;
-          selected.push({ card: entry.card, criterion: entry.passingOptions[0] });
-          usedCardIds.add(entry.card.id);
-        }
-        break;
-      }
+      const slotsAfterThis = verifierCount - selected.length - 1;
 
       const choices = [];
+
       for (const entry of passingOptionsByCard) {
         if (usedCardIds.has(entry.card.id)) continue;
+
         for (const criterion of entry.passingOptions) {
-          const filtered = possibleCodes.filter(candidate => TuringEngine.evaluate(candidate, criterion));
-          if (filtered.length > 0) {
-            choices.push({ card: entry.card, criterion, filtered, remaining: filtered.length });
+          const filtered = possibleCodes.filter(candidate =>
+            TuringEngine.evaluate(candidate, criterion)
+          );
+
+          if (filtered.length === 0) continue;
+
+          // 最後の判定機より前に正解が1通りになったら、
+          // それ以降の判定機が不要になるため採用しない
+          if (slotsAfterThis > 0 && filtered.length < 2) {
+            continue;
           }
+
+          // 最後の判定機で正解が1通りになる組み合わせだけを探す
+          if (slotsAfterThis === 0 && filtered.length !== 1) {
+            continue;
+          }
+
+          choices.push({
+            card: entry.card,
+            criterion,
+            filtered,
+            remaining: filtered.length
+          });
         }
       }
+
       if (choices.length === 0) break;
 
+      // 候補を絞り込める条件を優先しつつ、少しランダム性を持たせる
       choices.sort((a, b) => a.remaining - b.remaining);
-      const bestPool = choices.slice(0, Math.min(12, choices.length));
-      const chosen = bestPool[Math.floor(Math.random() * bestPool.length)];
-      selected.push({ card: chosen.card, criterion: chosen.criterion });
+
+      const bestPool = choices.slice(
+        0,
+        Math.min(12, choices.length)
+      );
+
+      const chosen = bestPool[
+        Math.floor(Math.random() * bestPool.length)
+      ];
+
+      selected.push({
+        card: chosen.card,
+        criterion: chosen.criterion
+      });
+
       usedCardIds.add(chosen.card.id);
       possibleCodes = chosen.filtered;
     }
 
-    if (selected.length === verifierCount && possibleCodes.length === 1) return selected;
+    // 判定機の数がそろい、正解が一意で、
+    // どの判定機も必要な場合だけ採用する
+    if (
+      selected.length === verifierCount &&
+      possibleCodes.length === 1 &&
+      hasUniqueEssentialSolution(code, selected)
+    ) {
+      return selected;
+    }
   }
+
   return null;
 }
 
@@ -789,21 +885,14 @@ function startFixedProblem() {
       throw new Error("正解コードが登録条件を満たしていません。");
     }
 
-    // すべての条件を満たすコードが正解だけか確認
-    const matchingCodes = TuringEngine.generateAllCodes().filter(code =>
-      selectedEntries.every(entry =>
-        TuringEngine.evaluate(code, entry.criterion)
-      )
-    );
 
-    if (
-      matchingCodes.length !== 1 ||
-      matchingCodes[0].some(
-        (number, index) => number !== problem.secretCode[index]
-      )
-    ) {
-      throw new Error("条件から正解コードを一つに絞れません。");
+    // 正解が一意で、どの判定機も必要か確認
+    if (!hasUniqueEssentialSolution(problem.secretCode, selectedEntries)) {
+      throw new Error(
+        "正解が一意でないか、不要な判定機が含まれています。"
+      );
     }
+
   } catch (error) {
     setMessage("問題の読み込みに失敗しました：" + error.message, "error");
     return;
