@@ -336,6 +336,27 @@ function setMessage(message, kind = "") {
   element.classList.remove("error", "success");
   if (kind) element.classList.add(kind);
 }
+function setFinalAnswerResult(message, kind = "") {
+  const element = document.getElementById("finalAnswerResult");
+  if (!element) return;
+
+  element.textContent = message;
+  element.classList.remove("success", "error");
+
+  if (kind) {
+    element.classList.add(kind);
+  }
+
+  element.hidden = false;
+}
+function resetFinalAnswerResult() {
+  const element = document.getElementById("finalAnswerResult");
+  if (!element) return;
+
+  element.textContent = "";
+  element.classList.remove("success", "error");
+  element.hidden = true;
+}
 function addLog(message) {
   historyEntries.unshift(message);
   renderHistory();
@@ -472,18 +493,19 @@ function submitGuess() {
   const guess = getFinalGuess();
 
   if (!validProposal(guess)) {
-    setMessage("最終回答の各数字に1～5を入力してください。", "error");
+    setMessage("最終回答の各数字を1～5で入力してください。", "error");
     return;
   }
 
   if (guess.every((digit, index) => digit === secretCode[index])) {
     gameFinished = true;
 
-    setMessage(
+    const resultMessage =
       "正解です！ " + currentRound +
-      "ラウンド・総質問数" + totalQuestions + "回で暗号を特定しました。",
-      "success"
-    );
+      "ラウンド・総質問数" + totalQuestions + "回で暗号を特定しました。";
+
+    setMessage(resultMessage, "success");
+    setFinalAnswerResult(resultMessage, "success");
 
     addLog(
       "正解：" + guess.join("") +
@@ -493,10 +515,11 @@ function submitGuess() {
 
     updateControls();
   } else {
-    setMessage(
-      "不正解です。提案コードと検証履歴はそのままです。手がかりを見直して推理を続けましょう。",
-      "error"
-    );
+    const resultMessage =
+      "不正解です。提案コードと検証履歴はそのままです。手がかりを見直して推理を続けましょう。";
+
+    setMessage(resultMessage, "error");
+    setFinalAnswerResult(resultMessage, "error");
 
     addLog("最終回答 " + guess.join("") + " は不正解でした。");
   }
@@ -687,6 +710,7 @@ function startRandomGame() {
   }
 });
   resetVerifierResults();
+  resetFinalAnswerResult();
   setMessage("「" + difficulty.label + "」モード・判定機" + verifierCount + "基で新しい問題を生成しました（使用カード：1～" + difficulty.maxCardId + "）。提案コードを決め、判定機に質問してください。");
   renderHistory();
   renderCandidateCount();
@@ -820,6 +844,7 @@ function startFixedProblem() {
   });
 
   resetVerifierResults();
+  resetFinalAnswerResult();
 
   setMessage(
   "問題 " + problem.id + "「" + problem.title +
@@ -937,3 +962,18 @@ document.getElementById("problemNumber").addEventListener(
 
 updateModeControls();
 newGame();
+
+/* 推理メモのクリアボタン */
+const clearMemoButton = document.getElementById("clearMemo");
+
+if (clearMemoButton) {
+  clearMemoButton.addEventListener("click", () => {
+    const memo = document.getElementById("deductionMemo");
+
+    if (!memo) return;
+
+    memo.value = "";
+    memo.focus();
+  });
+}
+
