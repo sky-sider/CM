@@ -51,25 +51,93 @@
     <h2>秘密のコードを解読せよ。</h2>
     <p>3桁のコードを提案し、検証器の回答から正解を推理してください。</p>
     <div class="rules"><span>数字：1〜5</span><span id="verifierCountRule">判定機：4基</span><span>条件カード：48種類</span><span>各ラウンド最大3回</span><span>モード：一人用</span></div>
-    <div class="settings-picker">
-      <div class="difficulty-picker">
-        <label for="difficulty">出題難易度</label>
-        <select id="difficulty" aria-label="出題難易度">
-          <option value="beginner">入門（カード1〜17）</option>
-          <option value="standard">標準（カード1〜22）</option>
-          <option value="advanced">上級（カード1〜48）</option>
-        </select>
-      </div>
-      <div class="difficulty-picker">
-        <label for="verifierCount">判定機の数</label>
-        <select id="verifierCount" aria-label="判定機の数">
-          <option value="4" selected>4基（A〜D）</option>
-          <option value="5">5基（A〜E）</option>
-          <option value="6">6基（A〜F）</option>
-        </select>
-      </div>
-      <p class="muted small settings-help">難易度と判定機の数を選んでから「新しい問題を開始」を押してください。</p>
+    <div class="settings-picker settings-panel">
+  <p class="settings-title">CONFIGURATION <span> / 設定</span></p>
+
+  <div class="game-mode-section">
+    <label class="settings-label">GAME MODE <span> / ゲームモード</span></label>
+
+    <div class="game-mode-cards">
+      <label class="mode-card selected" for="modeRandom">
+        <input
+          type="radio"
+          id="modeRandom"
+          name="gameModeChoice"
+          value="random"
+          checked
+        >
+        <span class="mode-card-icon" aria-hidden="true">⤨</span>
+        <span class="mode-card-text">
+          <strong>ランダム問題</strong>
+          <small>RANDOM</small>
+        </span>
+      </label>
+
+      <label class="mode-card" for="modeFixed">
+        <input
+          type="radio"
+          id="modeFixed"
+          name="gameModeChoice"
+          value="fixed"
+        >
+        <span class="mode-card-icon" aria-hidden="true">▤</span>
+        <span class="mode-card-text">
+          <strong>問題集</strong>
+          <small>ARCHIVE</small>
+        </span>
+      </label>
     </div>
+
+    <!-- 既存のJavaScriptとの互換性を維持するための選択欄 -->
+    <select id="gameMode" class="visually-hidden" aria-hidden="true" tabindex="-1">
+      <option value="random" selected>ランダム問題</option>
+      <option value="fixed">問題集</option>
+    </select>
+  </div>
+
+  <div class="problem-number-section">
+    <label class="settings-label" for="problemNumber">
+      <span class="settings-label-icon">▣</span>
+      問題番号
+    </label>
+
+    <select id="problemNumber" disabled>
+      <option value="001">001 — はじめての暗号</option>
+    </select>
+  </div>
+
+  <div class="settings-subgrid">
+    <div class="setting-field">
+      <label class="settings-label" for="difficulty">
+        <span class="settings-label-icon">◈</span>
+        出題難易度
+      </label>
+
+      <select id="difficulty" aria-label="出題難易度">
+        <option value="beginner">入門（カード1〜17）</option>
+        <option value="standard">標準（カード1〜22）</option>
+        <option value="advanced">上級（カード1〜48）</option>
+      </select>
+    </div>
+
+    <div class="setting-field">
+      <label class="settings-label" for="verifierCount">
+        <span class="settings-label-icon">⌘</span>
+        判定機の数
+      </label>
+
+      <select id="verifierCount" aria-label="判定機の数">
+        <option value="4" selected>4基（A〜D）</option>
+        <option value="5">5基（A〜E）</option>
+        <option value="6">6基（A〜F）</option>
+      </select>
+    </div>
+  </div>
+
+  <p class="muted small settings-help">
+    設定を選んでから「新しい問題を開始」を押してください。
+  </p>
+</div>
     <div class="round-status" aria-live="polite">
       <strong id="roundStatus">ROUND 1</strong>
       <span id="questionStatus">このラウンドの質問：0 / 3</span>
